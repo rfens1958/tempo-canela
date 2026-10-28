@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tempo em Canela</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column of stacked panels, summary (agora + consenso) before detail (tabela, gráfico, widgets, links) */
+:root {
+  --bg: #eaefec; --surface: #ffffff; --surface-2: #f4f7f5; --ink: #17211d; --muted: #586861; --line: #d2dbd6;
+  --accent: #2d6a55; --warm: #c0532a; --cold: #2c64a3; --rain: #2a7bbb; --rain-soft: #d5e6f3; --off: #fbe3d6; --ok: #2d6a55; --bad: #b4362b;
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1513; --surface: #17201c; --surface-2: #1d2823; --ink: #e5ece8; --muted: #93a39b; --line: #2b3732;
+  --accent: #72c2a1; --warm: #f08a5d; --cold: #82b2ec; --rain: #6db5ef; --rain-soft: #1b3345; --off: #4a2a1c; --ok: #72c2a1; --bad: #ef7a6e;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1513; --surface: #17201c; --surface-2: #1d2823; --ink: #e5ece8; --muted: #93a39b; --line: #2b3732;
+  --accent: #72c2a1; --warm: #f08a5d; --cold: #82b2ec; --rain: #6db5ef; --rain-soft: #1b3345; --off: #4a2a1c; --ok: #72c2a1; --bad: #ef7a6e;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+a { color: var(--accent); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+.eyebrow { font: 600 12px/1.2 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 800 clamp(34px, 6vw, 56px)/1 var(--f-display); font-stretch: 78%; margin: 6px 0 4px; letter-spacing: -.01em; text-wrap: balance; }
+.coords { color: var(--muted); font-size: 13px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.btn { font: 600 14px var(--f-body); border: 1px solid var(--accent); background: var(--accent); color: var(--surface);
+  padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+.btn:disabled { opacity: .6; cursor: progress; }
+.updated { font-size: 13px; color: var(--muted); }
+
+h2 { font: 700 22px/1.2 var(--f-display); font-stretch: 85%; margin: 0 0 4px; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 14px; max-width: 75ch; }
+section { min-width: 0; }
+
+.status { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; background: var(--surface); color: var(--muted); }
+.chip.ok::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); margin-right: 6px; }
+.chip.err::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--bad); margin-right: 6px; }
+.chip.wait::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--line); margin-right: 6px; }
+
+/* Agora */
+.now { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.now-main { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: grid; gap: 6px; align-content: start; }
+.now-temp { display: flex; align-items: center; gap: 14px; }
+.now-temp .big { font: 700 64px/1 var(--f-display); font-stretch: 80%; }
+.now-temp svg { width: 54px; height: 54px; color: var(--accent); }
+.now-cond { font-weight: 600; font-size: 17px; }
+.now-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 16px; font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+.now-facts b { color: var(--ink); font-weight: 600; }
+.now-list { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 0; }
+.now-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.3fr); gap: 12px; align-items: center; padding: 8px 18px; border-bottom: 1px solid var(--line); }
+.now-row:last-child { border-bottom: 0; }
+.now-row .src { font-weight: 600; }
+.now-row .src small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.now-row .t { font: 600 20px var(--f-data); }
+.now-row .d { color: var(--muted); font-size: 13px; }
+
+/* Consenso */
+.days { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.day { display: grid; grid-template-columns: 92px 34px minmax(110px, 1fr) minmax(0, 2.4fr) 112px 92px; gap: 12px; align-items: center;
+  padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.day:last-child { border-bottom: 0; }
+.day .when b { display: block; font-weight: 700; }
+.day .when span { color: var(--muted); font-size: 12.5px; }
+.day svg.ic { width: 30px; height: 30px; color: var(--accent); }
+.day .cond { font-size: 13.5px; }
+.day .cond small { display: block; color: var(--muted); font-size: 12px; }
+.bar { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 8px; align-items: center; }
+.bar .lo { color: var(--cold); text-align: right; font: 600 15px var(--f-data); }
+.bar .hi { color: var(--warm); font: 600 15px var(--f-data); }
+.track { position: relative; height: 10px; border-radius: 5px; background: var(--surface-2); }
+.track .spread { position: absolute; top: 3px; height: 4px; border-radius: 2px; background: var(--line); }
+.track .core { position: absolute; top: 0; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--cold), var(--warm)); }
+.rain { display: grid; gap: 3px; font-size: 13px; }
+.rain .mm { font: 600 14px var(--f-data); color: var(--rain); }
+.rain .pbar { height: 5px; border-radius: 3px; background: var(--rain-soft); overflow: hidden; }
+.rain .pbar i { display: block; height: 100%; background: var(--rain); }
+.agree { font-size: 12px; text-align: right; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-weight: 600; font-size: 11.5px; border: 1px solid currentColor; }
+.pill.high { color: var(--ok); } .pill.mid { color: var(--muted); } .pill.low { color: var(--warm); }
+
+/* Tabela */
+.tablebox { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+thead th { position: sticky; top: 0; background: var(--surface-2); font-weight: 600; font-size: 12px; }
+th.srcname { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 150px; }
+thead th.srcname { background: var(--surface-2); z-index: 2; }
+th.srcname small { display: block; color: var(--muted); font-weight: 400; font-size: 11.5px; }
+td .mx { color: var(--warm); font: 600 13px var(--f-data); }
+td .mn { color: var(--cold); font: 500 13px var(--f-data); }
+td .pr { display: block; color: var(--rain); font: 500 11.5px var(--f-data); }
+td.off { background: var(--off); }
+td.na { color: var(--muted); }
+tr.median th, tr.median td { background: var(--surface-2); font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.legend span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--off); }
+
+/* Gráficos */
+.charts { display: grid; gap: 16px; }
+.chartbox { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.chartbox h3 { margin: 0 0 8px; font: 600 14px var(--f-body); }
+.chartbox .cv { position: relative; height: 280px; }
+.chartbox .cv.short { height: 170px; }
+
+/* Widgets */
+.widgets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 16px; }
+.widget { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.widget.wide { grid-column: 1 / -1; }
+@media (min-width: 720px) { .widget.span2 { grid-column: span 2; } }
+.widget header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.widget header b { font-weight: 700; }
+.widget header a { font-size: 13px; }
+.widget iframe { width: 100%; border: 0; border-radius: 6px; background: var(--surface-2); max-width: 100%; }
+.widget .yr { background: #fff; border-radius: 6px; padding: 4px; overflow-x: auto; }
+.widget .yr img { display: block; width: 100%; min-width: 600px; height: auto; }
+
+/* Links */
+.links { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 10px; }
+.links a { display: grid; gap: 2px; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.links a:hover { border-color: var(--accent); }
+.links a b { font-weight: 700; }
+.links a span { color: var(--muted); font-size: 12.5px; }
+
+/* Secções recolhidas */
+.fold { min-width: 0; border-top: 1px solid var(--line); padding-top: 14px; }
+.fold summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 12px; }
+.fold summary::-webkit-details-marker { display: none; }
+.fold summary h2 { margin: 0; }
+.fold summary .hint { font-size: 13px; font-weight: 600; color: var(--accent); }
+.fold summary .hint::after { content: " ▾"; }
+.fold[open] summary .hint::after { content: " ▴"; }
+.fold[open] summary { margin-bottom: 8px; }
+.fold.mini { border-top: 0; padding-top: 0; }
+.fold.mini summary h3 { margin: 0; font: 600 15px var(--f-body); }
+.fold summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+
+footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
+.err { color: var(--bad); font-size: 13px; }
+
+@media (max-width: 820px) {
+  .now { grid-template-columns: minmax(0, 1fr); }
+  .day { grid-template-columns: 78px 28px minmax(0, 1fr) 96px; grid-template-areas: "when ic cond rain" "bar bar bar agree"; row-gap: 6px; }
+  .day .when { grid-area: when; } .day svg.ic { grid-area: ic; } .day .cond { grid-area: cond; }
+  .day .bar { grid-area: bar; } .day .rain { grid-area: rain; } .day .agree { grid-area: agree; }
+}
+@media (prefers-reduced-motion: no-preference) { .track .core, .rain .pbar i { transition: all .4s ease; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <div class="eyebrow">Serra Gaúcha · RS · 837 m</div>
+    <h1>Tempo em Canela</h1>
+    <div class="coords num">29,366° S · 50,816° O · fuso de Brasília</div>
+  </div>
+  <div class="controls">
+    <span class="updated" id="updated">A carregar…</span>
+    <button class="btn" id="refresh" type="button">Atualizar</button>
+  </div>
+</header>
+
+<section>
+  <div class="status" id="status"></div>
+</section>
+
+<section>
+  <h2>Agora</h2>
+  <div class="now">
+    <div class="now-main" id="now-main"></div>
+    <details class="fold mini" id="fold-now">
+      <summary><h3>Agora segundo cada fonte</h3><span class="hint">Mostrar</span></summary>
+      <div class="now-list" id="now-list"></div>
+    </details>
+  </div>
+</section>
+
+<section>
+  <h2>Próximos 10 dias: consenso</h2>
+  <p class="sub">Mediana de todas as fontes. A barra colorida vai da mínima à máxima medianas; o traço cinza mostra a dispersão entre fontes. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais).</p>
+  <div class="days" id="days"></div>
+</section>
+
+<details class="fold" id="fold-table">
+  <summary><h2>Comparação por fonte</h2><span class="hint">Mostrar</span></summary>
+  <p class="sub">Máxima / mínima em °C e chuva do dia em mm. Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada.</p>
+  <div class="tablebox"><table id="table"></table></div>
+  <div class="legend"><span>diverge 3 °C ou mais da mediana</span></div>
+</details>
+
+<section>
+  <h2>Próximas 72 horas</h2>
+  <p class="sub">Temperatura hora a hora de cada modelo (linhas finas) e mediana (linha grossa). Abaixo, chuva por hora: mediana e máximo entre modelos.</p>
+  <div class="charts">
+    <div class="chartbox"><h3>Temperatura (°C)</h3><div class="cv"><canvas id="c-temp"></canvas></div></div>
+    <div class="chartbox"><h3>Chuva (mm/h)</h3><div class="cv short"><canvas id="c-rain"></canvas></div></div>
+  </div>
+</section>
+
+<details class="fold" id="fold-widgets">
+  <summary><h2>Widgets oficiais</h2><span class="hint">Mostrar</span></summary>
+  <p class="sub">Vistas diretas dos próprios sites: Windy, Wetteronline, Meteoblue e Yr.</p>
+  <div class="widgets">
+    <div class="widget wide">
+      <header><b>Windy</b><a href="https://www.windy.com/-29.366/-50.816?-29.366,-50.816,9" target="_blank" rel="noopener">Abrir no Windy ↗</a></header>
+      <iframe id="windy" title="Mapa Windy de Canela" height="480" loading="lazy"
+        src="https://embed.windy.com/embed2.html?lat=-29.366&lon=-50.816&detailLat=-29.366&detailLon=-50.816&width=1100&height=480&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"></iframe>    </div>
+    <div class="widget">
+      <header><b>Wetteronline</b><a href="https://www.climaeradar.com.br/previsao-tempo/canela/11567001" target="_blank" rel="noopener">Abrir ↗</a></header>
+      <iframe title="Widget Wetteronline Canela" height="320" loading="lazy" style="max-width:320px"
+        src="https://api.wo-cloud.com/content/widget/?timeFormat=HH:mm&windUnit=kmh&systemOfMeasurement=metric&temperatureUnit=celsius&geoID=x8469&locationname=Canela&language=pt&region=BR"></iframe>
+    </div>
+    <div class="widget span2">
+      <header><b>Meteoblue</b><a href="https://www.meteoblue.com/pt/tempo/semana/canela_brasil_3467530" target="_blank" rel="noopener">Abrir ↗</a></header>
+      <iframe title="Widget Meteoblue Canela" height="560" loading="lazy"
+        src="https://www.meteoblue.com/pt/tempo/widget/daily/canela_brasil_3467530?geoloc=fixed&days=7&tempunit=CELSIUS&windunit=KILOMETER_PER_HOUR&precipunit=MILLIMETER&coloured=coloured&pictoicon=1&maxtemperature=1&mintemperature=1&windspeed=1&windgust=1&winddirection=1&uv=0&humidity=0&precipitation=1&precipitationprobability=1&spot=1&pressure=0&layout=light"></iframe>
+    </div>
+    <div class="widget wide">
+      <header><b>Yr (MET Norway) · meteograma 48 h</b><a href="https://www.yr.no/en/forecast/daily-table/2-3467530/Brazil/Rio%20Grande%20do%20Sul/Canela/Canela" target="_blank" rel="noopener">Abrir ↗</a></header>
+      <div class="yr"><img id="yr-img" alt="Meteograma do Yr para Canela" src="https://www.yr.no/en/content/2-3467530/meteogram.svg"></div>
+    </div>
+  </div>
+</details>
+
+<section>
+  <h2>Mais sites para Canela</h2>
+  <p class="sub">Fontes que não permitem incorporar os dados; abrem em nova aba já na página de Canela.</p>
+  <div class="links">
+    <a href="https://www.windy.com/-29.366/-50.816?-29.366,-50.816,9" target="_blank" rel="noopener"><b>Windy</b><span>Mapas, ECMWF, GFS, ICON</span></a>
+    <a href="https://www.climaeradar.com.br/previsao-tempo/canela/11567001" target="_blank" rel="noopener"><b>Wetteronline</b><span>Versão brasileira (Clima e Radar)</span></a>
+    <a href="https://www.meteoblue.com/pt/tempo/semana/canela_brasil_3467530" target="_blank" rel="noopener"><b>Meteoblue</b><span>Multimodelo, meteogramas</span></a>
+    <a href="https://www.yr.no/en/forecast/daily-table/2-3467530/Brazil/Rio%20Grande%20do%20Sul/Canela/Canela" target="_blank" rel="noopener"><b>Yr</b><span>MET Norway</span></a>
+    <a href="https://www.climatempo.com.br/previsao-do-tempo/15-dias/cidade/2170/canela-rs" target="_blank" rel="noopener"><b>Climatempo</b><span>15 dias</span></a>
+    <a href="https://metsul.com/" target="_blank" rel="noopener"><b>MetSul</b><span>Meteorologia do RS</span></a>
+    <a href="https://previsao.inmet.gov.br/" target="_blank" rel="noopener"><b>INMET</b><span>Instituto Nacional de Meteorologia</span></a>
+    <a href="https://www.cptec.inpe.br/" target="_blank" rel="noopener"><b>CPTEC/INPE</b><span>Previsão oficial</span></a>
+    <a href="https://www.ventusky.com/?p=-29.37;-50.82;9&l=temperature-2m" target="_blank" rel="noopener"><b>Ventusky</b><span>Mapas animados</span></a>
+    <a href="https://weather.com/pt-BR/weather/tenday/l/-29.37,-50.82" target="_blank" rel="noopener"><b>The Weather Channel</b><span>10 dias</span></a>
+    <a href="https://www.accuweather.com/pt/search-locations?query=Canela%2C%20Rio%20Grande%20do%20Sul" target="_blank" rel="noopener"><b>AccuWeather</b><span>Pesquisa por Canela</span></a>
+    <a href="https://www.wetter.com/suche/?q=Canela" target="_blank" rel="noopener"><b>wetter.com</b><span>Pesquisa por Canela</span></a>
+    <a href="https://www.windguru.cz/map/?lat=-29.366&lon=-50.816&zoom=9" target="_blank" rel="noopener"><b>Windguru</b><span>Vento e rajadas</span></a>
+    <a href="https://www.ogimet.com/" target="_blank" rel="noopener"><b>Ogimet</b><span>Observações SYNOP</span></a>
+    <a href="https://open-meteo.com/en/docs?latitude=-29.3656&longitude=-50.8158" target="_blank" rel="noopener"><b>Open-Meteo</b><span>Dados brutos dos modelos</span></a>
+    <a href="https://wttr.in/Canela,RS?lang=pt" target="_blank" rel="noopener"><b>wttr.in</b><span>Resumo em texto</span></a>
+  </div>
+</section>
+
+<footer>
+  Dados lidos diretamente das fontes cada vez que a página abre, e novamente a cada 30 minutos.
+  Modelos via <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0): ECMWF IFS e AIFS, NOAA GFS e AIGFS, DWD ICON, CMC GEM, JMA, Météo-France ARPEGE, UK Met Office e CMA GRAPES.
+  Também <a href="https://api.met.no/" target="_blank" rel="noopener">MET Norway</a> (CC BY 4.0), <a href="https://wttr.in/" target="_blank" rel="noopener">wttr.in</a> (World Weather Online) e o widget público do Wetteronline.
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const LOC = { lat: -29.3656, lon: -50.8158, alt: 837, tz: 'America/Sao_Paulo' };
+const DAYS = 10;
+const OM_MODELS = [
+  { id: 'ecmwf_ifs025', name: 'ECMWF IFS', org: 'Centro Europeu' },
+  { id: 'ecmwf_aifs025_single', name: 'ECMWF AIFS', org: 'Centro Europeu · IA' },
+  { id: 'gfs_seamless', name: 'GFS', org: 'NOAA, EUA' },
+  { id: 'ncep_aigfs025', name: 'AIGFS', org: 'NOAA, EUA · IA' },
+  { id: 'icon_seamless', name: 'ICON', org: 'DWD, Alemanha' },
+  { id: 'gem_seamless', name: 'GEM', org: 'CMC, Canadá' },
+  { id: 'jma_seamless', name: 'JMA GSM', org: 'Japão' },
+  { id: 'meteofrance_seamless', name: 'ARPEGE', org: 'Météo-France' },
+  { id: 'ukmo_seamless', name: 'UKMO', org: 'Met Office, RU' },
+  { id: 'cma_grapes_global', name: 'GRAPES', org: 'CMA, China' },
+];
+const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+// ---------- utilities ----------
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (v, d = 0) => (v == null || Number.isNaN(v)) ? '–' : v.toFixed(d).replace('.', ',').replace(/^-0(,0+)?$/, '0$1');
+const median = (arr) => { const a = arr.filter((x) => x != null && !Number.isNaN(x)).sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+const minOf = (arr) => { const a = arr.filter((x) => x != null); return a.length ? Math.min(...a) : null; };
+const maxOf = (arr) => { const a = arr.filter((x) => x != null); return a.length ? Math.max(...a) : null; };
+const localDate = (d) => d.toLocaleDateString('sv-SE', { timeZone: LOC.tz });
+const localHourKey = (d) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: LOC.tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).formatToParts(d).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:00`;
+};
+const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const dayLabel = (iso, i) => { const d = new Date(iso + 'T12:00:00Z'); const wd = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : WEEKDAYS[d.getUTCDay()]; return { wd, dm: `${d.getUTCDate()}/${d.getUTCMonth() + 1}` }; };
+
+async function fetchWithTimeout(url, ms = 20000, as = 'json') {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctl.signal, cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return as === 'json' ? await r.json() : await r.text();
+  } finally { clearTimeout(t); }
+}
+
+// ---------- weather conditions ----------
+// Category -> icon. Categories: sun, partly, cloud, fog, drizzle, rain, showers, storm, snow
+function wmoInfo(code) {
+  if (code == null) return { cat: 'cloud', text: '–' };
+  if (code === 0) return { cat: 'sun', text: 'Céu limpo' };
+  if (code === 1) return { cat: 'sun', text: 'Predomínio de sol' };
+  if (code === 2) return { cat: 'partly', text: 'Parcialmente nublado' };
+  if (code === 3) return { cat: 'cloud', text: 'Nublado' };
+  if (code === 45 || code === 48) return { cat: 'fog', text: 'Nevoeiro' };
+  if (code >= 51 && code <= 57) return { cat: 'drizzle', text: 'Garoa' };
+  if (code === 61) return { cat: 'rain', text: 'Chuva fraca' };
+  if (code === 63) return { cat: 'rain', text: 'Chuva' };
+  if (code === 65) return { cat: 'rain', text: 'Chuva forte' };
+  if (code === 66 || code === 67) return { cat: 'rain', text: 'Chuva congelante' };
+  if (code >= 71 && code <= 77) return { cat: 'snow', text: 'Neve' };
+  if (code >= 80 && code <= 82) return { cat: 'showers', text: code === 82 ? 'Pancadas fortes' : 'Pancadas de chuva' };
+  if (code === 85 || code === 86) return { cat: 'snow', text: 'Pancadas de neve' };
+  if (code >= 95) return { cat: 'storm', text: code > 95 ? 'Trovoada com granizo' : 'Trovoada' };
+  return { cat: 'cloud', text: '–' };
+}
+function metnoInfo(sym) {
+  if (!sym) return { cat: 'cloud', text: '–' };
+  const s = sym.replace(/_(day|night|polartwilight)$/, '');
+  const has = (k) => s.includes(k);
+  if (has('thunder')) return { cat: 'storm', text: 'Trovoada' };
+  if (has('snow')) return { cat: 'snow', text: 'Neve' };
+  if (has('sleet')) return { cat: 'rain', text: 'Chuva com neve' };
+  if (has('showers')) return { cat: 'showers', text: has('heavy') ? 'Pancadas fortes' : has('light') ? 'Pancadas fracas' : 'Pancadas de chuva' };
+  if (has('rain')) return { cat: 'rain', text: has('heavy') ? 'Chuva forte' : has('light') ? 'Chuva fraca' : 'Chuva' };
+  if (s === 'fog') return { cat: 'fog', text: 'Nevoeiro' };
+  if (s === 'clearsky') return { cat: 'sun', text: 'Céu limpo' };
+  if (s === 'fair') return { cat: 'sun', text: 'Poucas nuvens' };
+  if (s === 'partlycloudy') return { cat: 'partly', text: 'Parcialmente nublado' };
+  if (s === 'cloudy') return { cat: 'cloud', text: 'Nublado' };
+  return { cat: 'cloud', text: s };
+}
+const ICONS = {
+  sun: '<circle cx="16" cy="16" r="6" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 3v3M16 26v3M3 16h3M26 16h3M6.8 6.8l2.1 2.1M23.1 23.1l2.1 2.1M6.8 25.2l2.1-2.1M23.1 8.9l2.1-2.1"/></g>',
+  partly: '<circle cx="12" cy="12" r="5" fill="currentColor" opacity=".55"/><path d="M10 25h13a5 5 0 0 0 0-10 7 7 0 0 0-13 1.5A4.3 4.3 0 0 0 10 25z" fill="currentColor"/>',
+  cloud: '<path d="M8 24h15a6 6 0 0 0 0-12 8 8 0 0 0-15 2 5 5 0 0 0 0 10z" fill="currentColor"/>',
+  fog: '<path d="M8 15h15a5 5 0 0 0 0-10 7 7 0 0 0-14 2 4 4 0 0 0-1 8z" fill="currentColor" opacity=".7"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20h22M7 24h18M9 28h14"/></g>',
+  drizzle: '<path d="M8 18h15a5 5 0 0 0 0-10 7 7 0 0 0-14 2 4 4 0 0 0-1 8z" fill="currentColor"/><g fill="currentColor"><circle cx="11" cy="23" r="1.3"/><circle cx="16" cy="26" r="1.3"/><circle cx="21" cy="23" r="1.3"/></g>',
+  rain: '<path d="M8 18h15a5 5 0 0 0 0-10 7 7 0 0 0-14 2 4 4 0 0 0-1 8z" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 22l-1.5 5M16 22l-1.5 5M22 22l-1.5 5"/></g>',
+  showers: '<circle cx="11" cy="9" r="4" fill="currentColor" opacity=".55"/><path d="M9 19h14a5 5 0 0 0 0-10 7 7 0 0 0-13 2 4 4 0 0 0-1 8z" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 23l-1.5 5M19 23l-1.5 5"/></g>',
+  storm: '<path d="M8 17h15a5 5 0 0 0 0-10 7 7 0 0 0-14 2 4 4 0 0 0-1 8z" fill="currentColor"/><path d="M17 18l-5 7h4l-2 6 6-8h-4l2-5z" fill="currentColor"/>',
+  snow: '<path d="M8 18h15a5 5 0 0 0 0-10 7 7 0 0 0-14 2 4 4 0 0 0-1 8z" fill="currentColor"/><g fill="currentColor"><circle cx="11" cy="24" r="1.6"/><circle cx="16" cy="27" r="1.6"/><circle cx="21" cy="24" r="1.6"/></g>',
+};
+const icon = (cat, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${ICONS[cat] || ICONS.cloud}</svg>`;
+
+// ---------- source loaders ----------
+// Each loader resolves to source objects: { id, name, org, days: {date: {max,min,pr,cat,text}}, hourly: {key: {t,p}}, now }
+async function loadOpenMeteoModels() {
+  const q = new URLSearchParams({
+    latitude: LOC.lat, longitude: LOC.lon, timezone: LOC.tz, forecast_days: DAYS,
+    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code',
+    hourly: 'temperature_2m,precipitation',
+    models: OM_MODELS.map((m) => m.id).join(','),
+  });
+  const d = await fetchWithTimeout('https://api.open-meteo.com/v1/forecast?' + q);
+  return OM_MODELS.map((m) => {
+    const src = { id: m.id, name: m.name, org: m.org, kind: 'model', days: {}, hourly: {} };
+    d.daily.time.forEach((date, i) => {
+      const max = d.daily[`temperature_2m_max_${m.id}`]?.[i];
+      if (max == null) return;
+      const info = wmoInfo(d.daily[`weather_code_${m.id}`]?.[i]);
+      src.days[date] = { max, min: d.daily[`temperature_2m_min_${m.id}`]?.[i], pr: d.daily[`precipitation_sum_${m.id}`]?.[i], cat: info.cat, text: info.text };
+    });
+    d.hourly.time.forEach((t, i) => {
+      const v = d.hourly[`temperature_2m_${m.id}`]?.[i];
+      if (v != null) src.hourly[t] = { t: v, p: d.hourly[`precipitation_${m.id}`]?.[i] };
+    });
+    return src;
+  }).filter((s) => Object.keys(s.days).length);
+}
+
+async function loadOpenMeteoNow() {
+  const q = new URLSearchParams({
+    latitude: LOC.lat, longitude: LOC.lon, timezone: LOC.tz,
+    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,precipitation,cloud_cover,pressure_msl',
+    daily: 'sunrise,sunset', forecast_days: 1,
+  });
+  const d = await fetchWithTimeout('https://api.open-meteo.com/v1/forecast?' + q);
+  return { ...d.current, sunrise: d.daily.sunrise[0], sunset: d.daily.sunset[0] };
+}
+
+async function loadEnsemble() {
+  const q = new URLSearchParams({ latitude: LOC.lat, longitude: LOC.lon, timezone: LOC.tz, forecast_days: DAYS, hourly: 'precipitation', models: 'ecmwf_ifs025,gfs025' });
+  const d = await fetchWithTimeout('https://ensemble-api.open-meteo.com/v1/ensemble?' + q, 30000);
+  const keys = Object.keys(d.hourly).filter((k) => k.startsWith('precipitation'));
+  const perDay = {}; // date -> {wet, total}
+  keys.forEach((k) => {
+    const sums = {}, counts = {};
+    d.hourly[k].forEach((v, i) => {
+      if (v == null) return;
+      const date = d.hourly.time[i].slice(0, 10);
+      sums[date] = (sums[date] || 0) + v; counts[date] = (counts[date] || 0) + 1;
+    });
+    Object.keys(sums).forEach((date) => {
+      if (counts[date] < 6) return;
+      const e = perDay[date] || (perDay[date] = { wet: 0, total: 0 });
+      e.total++; if (sums[date] >= 1) e.wet++;
+    });
+  });
+  return perDay;
+}
+
+async function loadMetNo() {
+  const d = await fetchWithTimeout(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LOC.lat}&lon=${LOC.lon}&altitude=${LOC.alt}`);
+  const src = { id: 'metno', name: 'MET Norway', org: 'Yr · Noruega', kind: 'site', days: {}, hourly: {} };
+  const syms = {};
+  d.properties.timeseries.forEach((e) => {
+    const when = new Date(e.time);
+    const date = localDate(when);
+    const t = e.data.instant.details.air_temperature;
+    const n1 = e.data.next_1_hours, n6 = e.data.next_6_hours;
+    const p = n1 ? n1.details.precipitation_amount : n6 ? n6.details.precipitation_amount : 0;
+    const day = src.days[date] || (src.days[date] = { max: -99, min: 99, pr: 0 });
+    day.max = Math.max(day.max, t); day.min = Math.min(day.min, t); day.pr += p || 0;
+    const sym = (n1 || n6 || e.data.next_12_hours)?.summary?.symbol_code;
+    if (sym) (syms[date] || (syms[date] = [])).push(sym);
+    if (n1) src.hourly[localHourKey(when)] = { t, p: n1.details.precipitation_amount };
+  });
+  Object.entries(src.days).forEach(([date, v]) => {
+    const list = (syms[date] || []).map((s) => metnoInfo(s));
+    const pick = list.find((x) => x.cat === 'storm') || list.find((x) => x.cat === 'rain' || x.cat === 'showers') || list[Math.floor(list.length / 2)] || metnoInfo(null);
+    v.cat = pick.cat; v.text = pick.text; v.pr = Math.round(v.pr * 10) / 10;
+  });
+  const first = d.properties.timeseries[0];
+  const det = first.data.instant.details;
+  const info = metnoInfo(first.data.next_1_hours?.summary?.symbol_code);
+  src.now = { t: det.air_temperature, hum: det.relative_humidity, wind: det.wind_speed * 3.6, text: info.text, cat: info.cat };
+  return src;
+}
+
+async function loadWttr() {
+  const d = await fetchWithTimeout(`https://wttr.in/${LOC.lat},${LOC.lon}?format=j1&lang=pt`, 25000);
+  const src = { id: 'wttr', name: 'wttr.in', org: 'World Weather Online', kind: 'site', days: {}, hourly: {} };
+  d.weather.forEach((w) => {
+    const pr = w.hourly.reduce((s, h) => s + parseFloat(h.precipMM || 0), 0);
+    const mid = w.hourly[Math.min(4, w.hourly.length - 1)];
+    const text = mid?.lang_pt?.[0]?.value || mid?.weatherDesc?.[0]?.value || '';
+    src.days[w.date] = { max: +w.maxtempC, min: +w.mintempC, pr: Math.round(pr * 10) / 10, cat: textToCat(text), text };
+  });
+  const c = d.current_condition[0];
+  const text = c.lang_pt?.[0]?.value || c.weatherDesc?.[0]?.value || '';
+  src.now = { t: +c.temp_C, feels: +c.FeelsLikeC, hum: +c.humidity, wind: +c.windspeedKmph, text, cat: textToCat(text) };
+  return src;
+}
+
+async function loadWetteronline() {
+  const html = await fetchWithTimeout('https://api.wo-cloud.com/content/widget/?timeFormat=HH:mm&windUnit=kmh&systemOfMeasurement=metric&temperatureUnit=celsius&geoID=x8469&locationname=Canela&language=pt&region=BR', 20000, 'text');
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const src = { id: 'wetteronline', name: 'Wetteronline', org: 'Alemanha', kind: 'site', days: {}, hourly: {} };
+  const today = localDate(new Date());
+  doc.querySelectorAll('.forecast').forEach((f, i) => {
+    const max = parseFloat(f.querySelector('.temperature.max')?.textContent);
+    const min = parseFloat(f.querySelector('.temperature.min')?.textContent);
+    const text = f.querySelector('img.symbol')?.getAttribute('alt') || '';
+    if (!Number.isNaN(max)) src.days[addDays(today, i)] = { max, min: Number.isNaN(min) ? null : min, pr: null, cat: textToCat(text), text };
+  });
+  const t = parseFloat(doc.querySelector('.temp')?.textContent);
+  const wind = parseFloat(doc.querySelector('#wind-speed')?.textContent);
+  if (!Number.isNaN(t)) src.now = { t, wind: Number.isNaN(wind) ? null : wind, text: '', cat: null };
+  if (!Object.keys(src.days).length) throw new Error('formato inesperado');
+  return src;
+}
+
+function textToCat(t) {
+  t = (t || '').toLowerCase();
+  if (/trov|tempest|thunder/.test(t)) return 'storm';
+  if (/neve|snow/.test(t)) return 'snow';
+  if (/pancada|shower/.test(t)) return 'showers';
+  if (/garoa|chuvisc|drizzle/.test(t)) return 'drizzle';
+  if (/chuva|rain/.test(t)) return 'rain';
+  if (/névoa|nevoeiro|neblina|fog|mist/.test(t)) return 'fog';
+  if (/parcial|algumas nuvens|partly|poucas/.test(t)) return 'partly';
+  if (/nublado|encoberto|overcast|cloud/.test(t)) return 'cloud';
+  if (/sol|limpo|clear|sunny|ensolarado/.test(t)) return 'sun';
+  return 'cloud';
+}
+
+// ---------- rendering ----------
+const STATUS = [
+  ['om', 'Open-Meteo · 10 modelos'], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'],
+];
+function renderStatus(st) {
+  $('status').innerHTML = STATUS.map(([k, label]) => {
+    const s = st[k] || 'wait';
+    const title = s === 'ok' ? 'carregado' : s === 'wait' ? 'a carregar' : 'falhou: ' + s;
+    return `<span class="chip ${s === 'ok' ? 'ok' : s === 'wait' ? 'wait' : 'err'}" title="${esc(title)}">${esc(label)}</span>`;
+  }).join('');
+}
+
+function renderNow(cur, sources) {
+  const main = $('now-main');
+  if (cur) {
+    const info = wmoInfo(cur.weather_code);
+    const hm = (s) => s ? s.slice(11, 16) : '–';
+    main.innerHTML = `
+      <div class="eyebrow">Open-Meteo · melhor modelo para o local</div>
+      <div class="now-temp"><span class="big num">${fmt(cur.temperature_2m)}°</span>${icon(info.cat, '')}</div>
+      <div class="now-cond">${esc(info.text)}</div>
+      <div class="now-facts">
+        <div>Sensação <b class="num">${fmt(cur.apparent_temperature)}°</b></div>
+        <div>Umidade <b class="num">${fmt(cur.relative_humidity_2m)}%</b></div>
+        <div>Vento <b class="num">${fmt(cur.wind_speed_10m)} km/h</b></div>
+        <div>Rajadas <b class="num">${fmt(cur.wind_gusts_10m)} km/h</b></div>
+        <div>Nuvens <b class="num">${fmt(cur.cloud_cover)}%</b></div>
+        <div>Pressão <b class="num">${fmt(cur.pressure_msl)} hPa</b></div>
+        <div>Nascer do sol <b class="num">${hm(cur.sunrise)}</b></div>
+        <div>Pôr do sol <b class="num">${hm(cur.sunset)}</b></div>
+      </div>`;
+  } else {
+    main.innerHTML = '<p class="err">Não foi possível obter a condição atual do Open-Meteo.</p>';
+  }
+  const rows = [];
+  const nowKey = localHourKey(new Date());
+  sources.filter((s) => s.now).forEach((s) => {
+    const n = s.now;
+    const extra = [n.text, n.hum != null ? `umidade ${fmt(n.hum)}%` : '', n.wind != null ? `vento ${fmt(n.wind)} km/h` : ''].filter(Boolean).join(' · ');
+    rows.push(`<div class="now-row"><div class="src">${esc(s.name)}<small>${esc(s.org)}</small></div><div class="t">${fmt(n.t)}°</div><div class="d">${esc(extra)}</div></div>`);
+  });
+  const modelNow = sources.filter((s) => !s.now && s.hourly[nowKey]).map((s) => s.hourly[nowKey].t);
+  if (modelNow.length) {
+    rows.push(`<div class="now-row"><div class="src">Modelos numéricos<small>${modelNow.length} modelos, hora atual</small></div><div class="t">${fmt(median(modelNow))}°</div><div class="d">mediana · variam de ${fmt(minOf(modelNow))}° a ${fmt(maxOf(modelNow))}°</div></div>`);
+  }
+  $('now-list').innerHTML = rows.join('') || '<div class="now-row"><div class="d">Sem dados.</div></div>';
+}
+
+function consensus(sources, dates) {
+  return dates.map((date) => {
+    const vals = sources.map((s) => s.days[date]).filter(Boolean);
+    const maxs = vals.map((v) => v.max), mins = vals.map((v) => v.min), prs = vals.map((v) => v.pr).filter((x) => x != null);
+    // Models label any trace of rain as drizzle, so the day's condition comes from the median rain amount;
+    // only the dry/cloudy part comes from the sources' own labels.
+    const pr = median(prs);
+    const cats = {}; vals.forEach((v) => { if (v.cat) cats[v.cat] = (cats[v.cat] || 0) + 1; });
+    const storms = cats.storm || 0, showers = cats.showers || 0;
+    let cat, text;
+    if (pr != null && pr >= 1) {
+      if (storms >= Math.max(2, vals.length / 4)) { cat = 'storm'; text = 'Chuva com trovoadas'; }
+      else if (pr >= 15) { cat = 'rain'; text = 'Chuva forte'; }
+      else if (pr >= 5) { cat = showers > (cats.rain || 0) ? 'showers' : 'rain'; text = cat === 'showers' ? 'Pancadas de chuva' : 'Chuva'; }
+      else { cat = showers > (cats.rain || 0) ? 'showers' : 'rain'; text = cat === 'showers' ? 'Pancadas isoladas' : 'Chuva fraca'; }
+    } else {
+      const sky = ['sun', 'partly', 'cloud', 'fog'].map((c) => [c, cats[c] || 0]);
+      const wetish = (cats.drizzle || 0) + (cats.rain || 0) + showers + storms;
+      sky[2][1] += wetish; // a wet label with under 1 mm reads as a cloudy day
+      cat = sky.sort((a, b) => b[1] - a[1])[0][0];
+      text = { sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }[cat];
+      if (pr != null && pr >= 0.2) text += ', garoa possível';
+    }
+    const q = (arr, p) => { const a = arr.filter((x) => x != null).sort((x, y) => x - y); if (a.length < 3) return null; const i = (a.length - 1) * p, lo = Math.floor(i); return a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo); };
+    const iqr = q(maxs, .75) != null ? q(maxs, .75) - q(maxs, .25) : null;
+    return {
+      date, n: vals.length, cat, text, iqr,
+      max: median(maxs), min: median(mins), maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
+      pr, prHi: maxOf(prs), wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
+    };
+  });
+}
+
+function renderDays(cons, ens) {
+  const lo = Math.floor(minOf(cons.map((c) => c.minLo)) ?? 0) - 1, hi = Math.ceil(maxOf(cons.map((c) => c.maxHi)) ?? 30) + 1;
+  const pos = (v) => ((v - lo) / (hi - lo) * 100).toFixed(1) + '%';
+  $('days').innerHTML = cons.map((c, i) => {
+    const { wd, dm } = dayLabel(c.date, i);
+    // Agreement = spread of the middle half of the sources' maxima (ignores a single outlier)
+    const conf = c.iqr == null ? '' : c.iqr <= 2 ? '<span class="pill high">acordo alto</span>' : c.iqr <= 4 ? '<span class="pill mid">acordo médio</span>' : '<span class="pill low">incerto</span>';
+    const e = ens[c.date];
+    const prob = e && e.total ? Math.round(e.wet / e.total * 100) : null;
+    const rainTxt = prob != null ? `${prob}% de chance` : `${c.wetSources} de ${c.prN} fontes`;
+    const pct = prob != null ? prob : (c.prN ? Math.round(c.wetSources / c.prN * 100) : 0);
+    return `<div class="day">
+      <div class="when"><b>${wd}</b><span class="num">${dm}</span></div>
+      ${icon(c.cat)}
+      <div class="cond">${esc(c.text)}<small>${c.n} fontes</small></div>
+      <div class="bar"><span class="lo">${fmt(c.min)}°</span>
+        <div class="track" title="Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°">
+          <span class="spread" style="left:${pos(c.minLo)};width:calc(${pos(c.maxHi)} - ${pos(c.minLo)})"></span>
+          <span class="core" style="left:${pos(c.min)};width:calc(${pos(c.max)} - ${pos(c.min)})"></span>
+        </div><span class="hi">${fmt(c.max)}°</span></div>
+      <div class="rain"><span class="mm">${fmt(c.pr, 1)} mm</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
+      <div class="agree">${conf}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTable(sources, cons, dates) {
+  const head = `<thead><tr><th class="srcname">Fonte</th>${dates.map((d, i) => { const { wd, dm } = dayLabel(d, i); return `<th>${wd}<br><span class="num" style="font-weight:400">${dm}</span></th>`; }).join('')}</tr></thead>`;
+  const cell = (v, c) => {
+    if (!v) return '<td class="na">–</td>';
+    const off = c.max != null && Math.abs(v.max - c.max) >= 3 || (v.min != null && c.min != null && Math.abs(v.min - c.min) >= 3);
+    return `<td class="${off ? 'off' : ''}" title="${esc(v.text || '')}"><span class="mx">${fmt(v.max)}</span> / <span class="mn">${fmt(v.min)}</span>${v.pr != null ? `<span class="pr">${fmt(v.pr, 1)} mm</span>` : ''}</td>`;
+  };
+  const rows = sources.map((s) => `<tr><th class="srcname">${esc(s.name)}<small>${esc(s.org)}</small></th>${dates.map((d, i) => cell(s.days[d], cons[i])).join('')}</tr>`).join('');
+  const med = `<tr class="median"><th class="srcname">Mediana<small>${sources.length} fontes</small></th>${cons.map((c) => `<td><span class="mx">${fmt(c.max)}</span> / <span class="mn">${fmt(c.min)}</span><span class="pr">${fmt(c.pr, 1)} mm</span></td>`).join('')}</tr>`;
+  $('table').innerHTML = head + '<tbody>' + med + rows + '</tbody>';
+}
+
+let charts = [];
+function renderCharts(sources) {
+  if (!window.Chart) return;
+  charts.forEach((c) => c.destroy()); charts = [];
+  const css = getComputedStyle(document.documentElement);
+  const col = (n) => css.getPropertyValue(n).trim();
+  const start = new Date(); start.setMinutes(0, 0, 0);
+  const keys = Array.from({ length: 72 }, (_, i) => localHourKey(new Date(start.getTime() + i * 3600e3)));
+  const labels = keys.map((k) => { const d = new Date(k.slice(0, 10) + 'T12:00:00Z'); const h = k.slice(11, 13); return h === '00' ? `${WEEKDAYS[d.getUTCDay()]} ${h}h` : `${h}h`; });
+  const withHourly = sources.filter((s) => keys.some((k) => s.hourly[k]));
+  const palette = ['#4c8c74', '#7aa7c7', '#c78b5a', '#9b7fc4', '#c46b7f', '#6fae5a', '#c9a640', '#5ab3b0', '#8a8f99', '#b06f4a', '#4f6fb3'];
+  const tMed = keys.map((k) => median(withHourly.map((s) => s.hourly[k]?.t)));
+  const pMed = keys.map((k) => median(withHourly.map((s) => s.hourly[k]?.p)));
+  const pMax = keys.map((k) => maxOf(withHourly.map((s) => s.hourly[k]?.p)));
+  const grid = { color: col('--line') }, ticks = { color: col('--muted'), font: { family: 'IBM Plex Mono', size: 11 } };
+  const xTicks = { ...ticks, autoSkip: true, maxTicksLimit: 12, maxRotation: 0 };
+  charts.push(new Chart($('c-temp'), {
+    type: 'line',
+    data: { labels, datasets: [
+      ...withHourly.map((s, i) => ({ label: s.name, data: keys.map((k) => s.hourly[k]?.t ?? null), borderColor: palette[i % palette.length] + '99', borderWidth: 1.2, pointRadius: 0, tension: .3, spanGaps: false })),
+      { label: 'Mediana', data: tMed, borderColor: col('--ink'), borderWidth: 3, pointRadius: 0, tension: .3 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { color: col('--muted'), boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y, 1)} °C` } } },
+      scales: { x: { grid, ticks: xTicks }, y: { grid, ticks } } },
+  }));
+  charts.push(new Chart($('c-rain'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Máximo entre modelos', data: pMax, backgroundColor: col('--rain-soft'), grouped: false, order: 2 },
+      { label: 'Mediana', data: pMed, backgroundColor: col('--rain'), grouped: false, order: 1 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom', labels: { color: col('--muted'), boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y, 1)} mm` } } },
+      scales: { x: { grid: { display: false }, ticks: xTicks }, y: { grid, ticks, beginAtZero: true } } },
+  }));
+}
+
+// ---------- main ----------
+let loading = false, lastLoad = 0, lastSources = [];
+async function loadAll() {
+  if (loading) return; loading = true; $('refresh').disabled = true; $('updated').textContent = 'A atualizar…';
+  const st = {}; renderStatus(st);
+  const track = (k, p) => p.then((v) => { st[k] = 'ok'; renderStatus(st); return v; }, (e) => { st[k] = e.name === 'AbortError' ? 'tempo esgotado' : e.message; renderStatus(st); return null; });
+  const [om, cur, ens, metno, wttr, wo] = await Promise.all([
+    track('om', loadOpenMeteoModels()), track('om', loadOpenMeteoNow()).catch(() => null), track('ens', loadEnsemble()),
+    track('metno', loadMetNo()), track('wttr', loadWttr()), track('wo', loadWetteronline()),
+  ]);
+  const sources = [...(om || []), metno, wttr, wo].filter(Boolean);
+  const today = localDate(new Date());
+  const dates = Array.from({ length: DAYS }, (_, i) => addDays(today, i));
+  renderNow(cur, [metno, wttr, wo, ...(om || [])].filter(Boolean));
+  if (sources.length) {
+    const cons = consensus(sources, dates);
+    renderDays(cons, ens || {});
+    renderTable(sources, cons, dates);
+    renderCharts(sources);
+    lastSources = sources;
+  } else {
+    $('days').innerHTML = '<p class="err" style="padding:16px">Nenhuma fonte respondeu. Verifique a ligação à internet e carregue em Atualizar.</p>';
+  }
+  const yr = $('yr-img'); yr.src = yr.src.split('?')[0] + '?t=' + Date.now();
+  lastLoad = Date.now(); loading = false; $('refresh').disabled = false;
+  $('updated').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+document.querySelectorAll('details.fold').forEach((d) => d.addEventListener('toggle', () => {
+  d.querySelector('.hint').textContent = d.open ? 'Ocultar' : 'Mostrar';
+}));
+$('refresh').addEventListener('click', loadAll);
+setInterval(loadAll, 30 * 60e3);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastLoad > 15 * 60e3) loadAll(); });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (lastSources.length) renderCharts(lastSources); });
+loadAll();
+</script>
+</body>
+</html>

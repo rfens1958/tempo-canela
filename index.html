@@ -57,7 +57,17 @@ section { min-width: 0; }
 .chip.wait::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--line); margin-right: 6px; }
 
 /* Agora */
-.now { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.now { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 12px 16px; align-items: start; }
+.now > details { grid-column: 1 / -1; }
+.cam { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: grid; }
+.cam img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: var(--surface-2); max-width: 100%; }
+.cam figcaption { padding: 12px 16px 14px; display: grid; gap: 8px; }
+.cam-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cam-head a { font-size: 13px; }
+.cam-time { font-size: 12.5px; color: var(--muted); }
+.now-src { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.now-src:empty { display: none; }
+#now-icon { display: contents; }
 .now-main { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: grid; gap: 6px; align-content: start; }
 .now-temp { display: flex; align-items: center; gap: 14px; }
 .now-temp .big { font: 700 64px/1 var(--f-display); font-stretch: 80%; }
@@ -158,6 +168,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 @media (max-width: 820px) {
   .now { grid-template-columns: minmax(0, 1fr); }
+  .cam { order: -1; }
   .day { grid-template-columns: 78px 28px minmax(0, 1fr) 96px; grid-template-areas: "when ic cond rain" "bar bar bar agree"; row-gap: 6px; }
   .day .when { grid-area: when; } .day svg.ic { grid-area: ic; } .day .cond { grid-area: cond; }
   .day .bar { grid-area: bar; } .day .rain { grid-area: rain; } .day .agree { grid-area: agree; }
@@ -188,6 +199,15 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
   <h2>Agora</h2>
   <div class="now">
     <div class="now-main" id="now-main"></div>
+    <figure class="cam" id="cam">
+      <a href="https://camerasdaserra.com.br/cameras/143" target="_blank" rel="noopener" title="Abrir a câmera ao vivo">
+        <img id="cam-img" alt="Foto mais recente da câmera da Praça João Corrêa, em Canela" width="1920" height="1080">
+      </a>
+      <figcaption>
+        <div class="cam-head"><span class="eyebrow">Câmera · Praça João Corrêa</span><a href="https://camerasdaserra.com.br/cameras/143" target="_blank" rel="noopener">Ao vivo ↗</a></div>
+        <div class="cam-time" id="cam-time"></div>
+      </figcaption>
+    </figure>
     <details class="fold mini" id="fold-now">
       <summary><h3>Agora segundo cada fonte</h3><span class="hint">Mostrar</span></summary>
       <div class="now-list" id="now-list"></div>
@@ -496,9 +516,61 @@ function textToCat(t) {
   return 'cloud';
 }
 
+// ---------- câmera ----------
+// The photo comes straight from the camera site; the assessment comes from our Cloudflare Worker
+// (avaliador-camera/), which asks Claude about the current photo and caches the answer per photo.
+const CAM_IMG = 'https://files.rbt.psi.br/images/camerasdaserra/snapshots/6ac50858030d8003e45e1f7f/thumbnail.jpg';
+const CAM_WORKER = 'https://tempo-canela-camera.tempo-canela-camera.workers.dev/';
+
+let lastCam = null;
+
+async function loadCamera() {
+  $('cam-img').src = CAM_IMG + '?t=' + Math.floor(Date.now() / 600e3);
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 60000);
+  try {
+    const r = await fetch(CAM_WORKER, { signal: ctl.signal, cache: 'no-store' });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(body.error || 'HTTP ' + r.status);
+    return body;
+  } finally { clearTimeout(t); }
+}
+
+const camHm = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { timeZone: LOC.tz, hour: '2-digit', minute: '2-digit' });
+const cap = (s) => s ? s[0].toUpperCase() + s.slice(1) : s;
+
+// Short condition line for the Open-Meteo card, built from what the photo shows
+function camCondition(c) {
+  const wet = ['garoa', 'chuva fraca', 'chuva moderada', 'chuva forte'].includes(c.precipitation);
+  const parts = [];
+  if (wet) parts.push(cap(c.precipitation));
+  if (c.fog) parts.push(wet ? 'nevoeiro' : 'Nevoeiro');
+  if (!parts.length) parts.push(cap(c.sky === 'não visível' ? 'nublado' : c.sky));
+  if (!wet && (c.ground === 'molhado' || c.ground === 'com poças')) parts.push('chão molhado');
+  return parts.join(' · ');
+}
+
+// Usable only while the photo is recent; an old photo says nothing about now
+const camFresh = (c) => c && c.summary && (Date.now() - new Date(c.image_time).getTime()) < 2.5 * 3600e3;
+
+function renderCamera(c) {
+  lastCam = c;
+  $('cam-time').textContent = c?.image_time ? `Foto das ${camHm(c.image_time)}` : '';
+  applyCameraToNow();
+}
+
+function applyCameraToNow() {
+  const c = lastCam, cond = $('now-cond');
+  if (!cond || !camFresh(c)) return;
+  cond.textContent = camCondition(c);
+  $('now-icon').innerHTML = icon(c.category === 'night' ? 'cloud' : c.category, '');
+  $('now-vis').innerHTML = `Visibilidade <b>${esc(c.visibility)}</b>`;
+  $('now-vis').hidden = false;
+  $('now-src').textContent = `Condição observada na câmera da praça às ${camHm(c.image_time)}; números do Open-Meteo (modelo previa: ${$('now-cond').dataset.model}).`;
+}
+
 // ---------- rendering ----------
 const STATUS = [
-  ['om', 'Open-Meteo · 10 modelos'], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'],
+  ['om', 'Open-Meteo · 10 modelos'], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'], ['cam', 'Câmera da praça'],
 ];
 function renderStatus(st) {
   $('status').innerHTML = STATUS.map(([k, label]) => {
@@ -515,9 +587,10 @@ function renderNow(cur, sources) {
     const hm = (s) => s ? s.slice(11, 16) : '–';
     main.innerHTML = `
       <div class="eyebrow">Open-Meteo · melhor modelo para o local</div>
-      <div class="now-temp"><span class="big num">${fmt(cur.temperature_2m)}°</span>${icon(info.cat, '')}</div>
-      <div class="now-cond">${esc(info.text)}</div>
+      <div class="now-temp"><span class="big num">${fmt(cur.temperature_2m)}°</span><span id="now-icon">${icon(info.cat, '')}</span></div>
+      <div class="now-cond" id="now-cond" data-model="${esc(info.text.toLowerCase())}">${esc(info.text)}</div>
       <div class="now-facts">
+        <div id="now-vis" hidden></div>
         <div>Sensação <b class="num">${fmt(cur.apparent_temperature)}°</b></div>
         <div>Umidade <b class="num">${fmt(cur.relative_humidity_2m)}%</b></div>
         <div>Vento <b class="num">${fmt(cur.wind_speed_10m)} km/h</b></div>
@@ -526,7 +599,9 @@ function renderNow(cur, sources) {
         <div>Pressão <b class="num">${fmt(cur.pressure_msl)} hPa</b></div>
         <div>Nascer do sol <b class="num">${hm(cur.sunrise)}</b></div>
         <div>Pôr do sol <b class="num">${hm(cur.sunset)}</b></div>
-      </div>`;
+      </div>
+      <div class="now-src" id="now-src"></div>`;
+    applyCameraToNow();
   } else {
     main.innerHTML = '<p class="err">Não foi possível obter a condição atual do Open-Meteo.</p>';
   }
@@ -661,6 +736,8 @@ async function loadAll() {
   if (loading) return; loading = true; $('refresh').disabled = true; $('updated').textContent = 'A atualizar…';
   const st = {}; renderStatus(st);
   const track = (k, p) => p.then((v) => { st[k] = 'ok'; renderStatus(st); return v; }, (e) => { st[k] = e.name === 'AbortError' ? 'tempo esgotado' : e.message; renderStatus(st); return null; });
+  // The camera assessment can take several seconds, so it renders on its own without holding up the forecast
+  track('cam', loadCamera()).then(renderCamera);
   const [om, cur, ens, metno, wttr, wo] = await Promise.all([
     track('om', loadOpenMeteoModels()), track('om', loadOpenMeteoNow()).catch(() => null), track('ens', loadEnsemble()),
     track('metno', loadMetNo()), track('wttr', loadWttr()), track('wo', loadWetteronline()),

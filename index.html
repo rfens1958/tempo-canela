@@ -517,21 +517,23 @@ function textToCat(t) {
 }
 
 // ---------- câmera ----------
-// The photo comes straight from the camera site; the assessment comes from our Cloudflare Worker
-// (avaliador-camera/), which asks Claude about the current photo and caches the answer per photo.
+// Photo and assessment both come from our Cloudflare Worker (avaliador-camera/), which keeps the
+// last evaluated photo and renews it at most once an hour. The live camera image is only a fallback.
 const CAM_IMG = 'https://files.rbt.psi.br/images/camerasdaserra/snapshots/6ac50858030d8003e45e1f7f/thumbnail.jpg';
 const CAM_WORKER = 'https://tempo-canela-camera.tempo-canela-camera.workers.dev/';
 
 let lastCam = null;
 
 async function loadCamera() {
-  $('cam-img').src = CAM_IMG + '?t=' + Math.floor(Date.now() / 600e3);
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 60000);
   try {
     const r = await fetch(CAM_WORKER, { signal: ctl.signal, cache: 'no-store' });
     const body = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(body.error || 'HTTP ' + r.status);
     return body;
+  } catch (e) {
+    $('cam-img').src = CAM_IMG + '?t=' + Math.floor(Date.now() / 3600e3);
+    throw e;
   } finally { clearTimeout(t); }
 }
 
@@ -554,6 +556,7 @@ const camFresh = (c) => c && c.summary && (Date.now() - new Date(c.image_time).g
 
 function renderCamera(c) {
   lastCam = c;
+  if (c?.image_time) $('cam-img').src = CAM_WORKER + 'foto?v=' + encodeURIComponent(c.image_time);
   $('cam-time').textContent = c?.image_time ? `Foto das ${camHm(c.image_time)}` : '';
   applyCameraToNow();
 }

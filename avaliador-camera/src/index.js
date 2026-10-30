@@ -1,10 +1,13 @@
-// Cloudflare Worker: avalia a foto mais recente da câmera da Praça João Corrêa (Canela)
-// com o Claude e devolve um JSON para a página "Tempo em Canela".
-// A avaliação de cada foto fica em cache até a câmera publicar uma foto nova
-// (cerca de 1 por hora), por isso abrir a página várias vezes não repete o custo.
+// Cloudflare Worker: avalia a foto da câmera da Praça João Corrêa (Canela) com o Claude
+// para a página "Tempo em Canela".
+//   GET /      -> avaliação (JSON)
+//   GET /foto  -> a foto que foi avaliada (JPEG)
+// A foto e a avaliação ficam guardadas no KV e só são renovadas 1 hora depois da
+// renovação anterior, por mais vezes que a página seja aberta.
 import Anthropic from "@anthropic-ai/sdk";
 
 const CAM_URL = "https://files.rbt.psi.br/images/camerasdaserra/snapshots/6ac50858030d8003e45e1f7f/thumbnail.jpg";
+const RENEW_MS = 60 * 60 * 1000;
 const ALLOWED_ORIGINS = ["https://rfens1958.github.io", "null"]; // "null" = página aberta como ficheiro local
 
 const SCHEMA = {
@@ -54,18 +57,33 @@ export default {
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders(request) });
     if (request.method !== "GET") return json({ error: "Use GET." }, 405, request);
+    const path = new URL(request.url).pathname;
+
+    if (path === "/foto") {
+      const photo = await env.CAMERA.get("photo", "arrayBuffer");
+      if (!photo) return new Response("Ainda não há foto avaliada.", { status: 404, headers: corsHeaders(request) });
+      return new Response(photo, {
+        headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=3600", ...corsHeaders(request) },
+      });
+    }
+
+    const last = await env.CAMERA.get("last", "json");
+    if (last && Date.now() - Date.parse(last.renewed_at) < RENEW_MS) return json(last, 200, request, { "X-Cache": "HIT" });
+
     if (!env.ANTHROPIC_API_KEY) return json({ error: "Falta configurar a chave ANTHROPIC_API_KEY no Worker." }, 503, request);
 
     const img = await fetch(CAM_URL + "?t=" + Date.now(), { cf: { cacheTtl: 0 } });
-    if (!img.ok) return json({ error: `A câmera não respondeu (HTTP ${img.status}).` }, 502, request);
-    const lastModified = img.headers.get("Last-Modified") || new Date().toUTCString();
-    const imageTime = new Date(lastModified).toISOString();
+    if (!img.ok) return last ? json(last, 200, request, { "X-Cache": "STALE" }) : json({ error: `A câmera não respondeu (HTTP ${img.status}).` }, 502, request);
+    const imageTime = new Date(img.headers.get("Last-Modified") || Date.now()).toISOString();
 
-    // One assessment per camera photo
-    const cacheKey = new Request("https://avaliador-camera.cache/avaliacao?foto=" + encodeURIComponent(imageTime));
-    const cached = await caches.default.match(cacheKey);
-    if (cached) return json(await cached.json(), 200, request, { "X-Cache": "HIT" });
+    // The camera has not published a new photo: keep the previous assessment for another hour
+    if (last && last.image_time === imageTime) {
+      const kept = { ...last, renewed_at: new Date().toISOString() };
+      ctx.waitUntil(env.CAMERA.put("last", JSON.stringify(kept)));
+      return json(kept, 200, request, { "X-Cache": "SAME-PHOTO" });
+    }
 
+    const photo = await img.arrayBuffer();
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
     let response;
     try {
@@ -78,7 +96,7 @@ export default {
         messages: [{
           role: "user",
           content: [
-            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: toBase64(await img.arrayBuffer()) } },
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: toBase64(photo) } },
             { type: "text", text: PROMPT },
           ],
         }],
@@ -100,11 +118,12 @@ export default {
       image_url: CAM_URL,
       image_time: imageTime,
       analyzed_at: new Date().toISOString(),
+      renewed_at: new Date().toISOString(),
       model: response.model,
     };
-    ctx.waitUntil(caches.default.put(cacheKey, new Response(JSON.stringify(result), {
-      headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=10800" },
-    })));
+    // Photo first, so /foto never serves an older photo than the stored assessment describes
+    await env.CAMERA.put("photo", photo);
+    await env.CAMERA.put("last", JSON.stringify(result));
     return json(result, 200, request, { "X-Cache": "MISS" });
   },
 };

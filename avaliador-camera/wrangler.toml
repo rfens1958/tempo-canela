@@ -2,3 +2,8 @@ name = "tempo-canela-camera"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
+
+# Última foto avaliada e a sua avaliação (renovadas no máximo 1 vez por hora)
+[[kv_namespaces]]
+binding = "CAMERA"
+id = "c0508381cf6c4897835b3ef10f69961f"

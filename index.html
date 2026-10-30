@@ -67,6 +67,20 @@ section { min-width: 0; }
 .cam-time { font-size: 12.5px; color: var(--muted); }
 .now-src { font-size: 12px; color: var(--muted); margin-top: 4px; }
 .now-src:empty { display: none; }
+.outlook { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 12px; display: grid; gap: 10px; min-width: 0; }
+.outlook:empty { display: none; }
+.ol-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-weight: 600; font-size: 14px; }
+.ol-events { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 3px; }
+.ol-events li.alta { color: var(--warm); font-weight: 600; }
+.ol-calm { margin: 0; font-size: 14px; }
+.ol-strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.ol-h { flex: none; width: 54px; display: grid; justify-items: center; gap: 2px; padding: 6px 0; border-radius: 8px; background: var(--surface-2); font-size: 12px; }
+.ol-h.wet { background: var(--rain-soft); }
+.ol-h .hh { color: var(--muted); }
+.ol-h svg { width: 22px; height: 22px; color: var(--accent); }
+.ol-h .t { font: 600 13px var(--f-data); }
+.ol-h .p { color: var(--rain); font: 500 11px var(--f-data); }
+.ol-note { font-size: 12px; color: var(--muted); }
 #now-icon { display: contents; }
 .now-main { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: grid; gap: 6px; align-content: start; }
 .now-temp { display: flex; align-items: center; gap: 14px; }
@@ -414,10 +428,11 @@ async function loadOpenMeteoNow() {
   const q = new URLSearchParams({
     latitude: LOC.lat, longitude: LOC.lon, timezone: LOC.tz,
     current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,precipitation,cloud_cover,pressure_msl',
-    daily: 'sunrise,sunset', forecast_days: 1,
+    hourly: 'temperature_2m,precipitation_probability,precipitation,weather_code,cloud_cover,wind_gusts_10m,visibility',
+    daily: 'sunrise,sunset', forecast_days: 2,
   });
   const d = await fetchWithTimeout('https://api.open-meteo.com/v1/forecast?' + q);
-  return { ...d.current, sunrise: d.daily.sunrise[0], sunset: d.daily.sunset[0] };
+  return { ...d.current, sunrise: d.daily.sunrise[0], sunset: d.daily.sunset[0], hourly: d.hourly };
 }
 
 async function loadEnsemble() {
@@ -559,6 +574,7 @@ function renderCamera(c) {
   if (c?.image_time) $('cam-img').src = CAM_WORKER + 'foto?v=' + encodeURIComponent(c.image_time);
   $('cam-time').textContent = c?.image_time ? `Foto das ${camHm(c.image_time)}` : '';
   applyCameraToNow();
+  renderOutlook();
 }
 
 function applyCameraToNow() {
@@ -569,6 +585,97 @@ function applyCameraToNow() {
   $('now-vis').innerHTML = `Visibilidade <b>${esc(c.visibility)}</b>`;
   $('now-vis').hidden = false;
   $('now-src').textContent = `Condição observada na câmera da praça às ${camHm(c.image_time)}; números do Open-Meteo (modelo previa: ${$('now-cond').dataset.model}).`;
+}
+
+// ---------- próximas horas ----------
+// Outlook from the next hour until 20h (today, or tomorrow once it is 18h or later), comparing each hour
+// with the current condition (camera-corrected when the photo is recent) to flag significant changes.
+let lastCur = null, lastNowSources = [];
+const isWetPrecip = (s) => ['garoa', 'chuva fraca', 'chuva moderada', 'chuva forte'].includes(s);
+
+function renderOutlook() {
+  const box = $('outlook');
+  if (!box || !lastCur?.hourly) return;
+  const H = lastCur.hourly, now = new Date(), nowKey = localHourKey(now);
+  const today = localDate(now), tomorrow = +nowKey.slice(11, 13) >= 18;
+  const endKey = (tomorrow ? addDays(today, 1) : today) + 'T20:00';
+  const label = tomorrow ? 'até amanhã às 20h' : 'até as 20h';
+  const models = lastNowSources.filter((s) => s.kind === 'model');
+  const hr = H.time.map((key, i) => ({ key, i })).filter(({ key }) => key > nowKey && key <= endKey).map(({ key, i }) => {
+    const ms = models.filter((s) => s.hourly[key]);
+    return {
+      key, h: +key.slice(11, 13) + 'h', next: key.slice(0, 10) !== today,
+      t: H.temperature_2m[i], prob: H.precipitation_probability[i], p: H.precipitation[i], code: H.weather_code[i],
+      cloud: H.cloud_cover[i], gust: H.wind_gusts_10m[i], vis: H.visibility?.[i],
+      n: ms.length, wet: ms.filter((s) => (s.hourly[key].p ?? 0) >= 0.2).length,
+    };
+  });
+  if (!hr.length) { box.innerHTML = ''; return; }
+
+  const wetHour = (x) => (x.prob ?? 0) >= 50 || (x.p ?? 0) >= 0.3 || (x.n > 0 && x.wet / x.n >= 0.5);
+  const dryHour = (x) => (x.prob ?? 0) < 30 && (x.p ?? 0) < 0.1 && (x.n === 0 || x.wet / x.n < 0.3);
+  const foggy = (x) => [45, 48].includes(x.code) || (x.vis != null && x.vis < 1000);
+  const cam = camFresh(lastCam) ? lastCam : null;
+  const nowWet = cam ? isWetPrecip(cam.precipitation) : (lastCur.precipitation >= 0.1 || lastCur.weather_code >= 51);
+  const nowFog = cam ? cam.fog : [45, 48].includes(lastCur.weather_code);
+  const tNow = lastCur.temperature_2m;
+  const ev = []; // [severity, text]
+
+  const storm = hr.find((x) => x.code >= 95);
+  if (storm) ev.push(['alta', `Risco de trovoada por volta das ${storm.h}`]);
+  if (!nowWet) {
+    const r = hr.find(wetHour);
+    if (r) ev.push(['alta', `Chuva deve começar por volta das ${r.h} (${r.prob ?? '–'}% de chance${r.n ? `; ${r.wet} de ${r.n} modelos` : ''})`]);
+    else {
+      const top = hr.reduce((a, b) => ((b.prob ?? 0) > (a.prob ?? 0) ? b : a));
+      if ((top.prob ?? 0) >= 30) ev.push(['média', `Possibilidade de chuva por volta das ${top.h} (${top.prob}%)`]);
+    }
+  } else {
+    const k = hr.findIndex((x, i) => dryHour(x) && hr[i + 1] && dryHour(hr[i + 1]));
+    if (k >= 0) ev.push(['média', `Chuva deve parar por volta das ${hr[k].h}`]);
+  }
+  const hi = hr.reduce((a, b) => (b.t > a.t ? b : a)), lo = hr.reduce((a, b) => (b.t < a.t ? b : a));
+  if (hi.t - tNow >= 4) ev.push(['média', `Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}`]);
+  if (tNow - lo.t >= 4) ev.push(['média', `Temperatura cai para ${fmt(lo.t)}° por volta das ${lo.h}`]);
+  const g = hr.reduce((a, b) => ((b.gust ?? 0) > (a.gust ?? 0) ? b : a));
+  if ((g.gust ?? 0) >= 50) ev.push([g.gust >= 70 ? 'alta' : 'média', `Rajadas de até ${fmt(g.gust)} km/h por volta das ${g.h}`]);
+  if (nowFog) {
+    // Only when the model also has fog now (low visibility this hour); then two clear hours in a row
+    const visNow = H.visibility?.[H.time.indexOf(nowKey)];
+    const k = visNow != null && visNow < 5000
+      ? hr.findIndex((x, i) => x.vis != null && x.vis >= 5000 && !foggy(x) && hr[i + 1] && hr[i + 1].vis >= 5000) : -1;
+    if (k >= 0) ev.push(['média', `Nevoeiro tende a dissipar por volta das ${hr[k].h}`]);
+  } else {
+    const f = hr.find(foggy);
+    if (f) ev.push(['média', `Nevoeiro deve voltar por volta das ${f.h}`]);
+  }
+  if (!ev.some(([, t]) => /chuva|trovoada/i.test(t))) {
+    if (lastCur.cloud_cover >= 80) {
+      const s = hr.find((x) => x.cloud <= 40 && dryHour(x));
+      if (s) ev.push(['média', `${s.key < lastCur.sunset ? 'Sol entre nuvens' : 'Céu deve abrir'} a partir das ${s.h}`]);
+    } else if (lastCur.cloud_cover <= 40) {
+      const s = hr.find((x) => x.cloud >= 85);
+      if (s) ev.push(['média', `Céu deve fechar a partir das ${s.h}`]);
+    }
+  }
+
+  const maxProb = Math.max(...hr.map((x) => x.prob ?? 0));
+  const head = ev.length
+    ? `<span class="pill low">Mudança significativa</span><span>${label}</span>`
+    : `<span class="pill high">Sem mudança significativa</span><span>${label}</span>`;
+  const body = ev.length
+    ? `<ul class="ol-events">${ev.map(([sev, t]) => `<li class="${sev}">${esc(t)}</li>`).join('')}</ul>`
+    : `<p class="ol-calm">${nowWet ? 'A chuva deve continuar' : 'O tempo deve se manter como está'}: temperatura entre ${fmt(lo.t)}° e ${fmt(hi.t)}°, chance de chuva de até ${maxProb}%.</p>`;
+  const strip = hr.map((x) => `
+    <div class="ol-h${wetHour(x) ? ' wet' : ''}" title="${esc(wmoInfo(x.code).text)}${x.n ? ` · chuva em ${x.wet} de ${x.n} modelos` : ''}">
+      <span class="hh">${x.next && x.key.endsWith('T00:00') ? 'amanhã' : x.h}</span>${icon(wmoInfo(x.code).cat, '')}
+      <span class="t">${fmt(x.t)}°</span><span class="p">${x.prob ?? '–'}%</span>
+    </div>`).join('');
+  box.innerHTML = `
+    <div class="ol-head">${head}</div>
+    ${body}
+    <div class="ol-strip">${strip}</div>
+    <div class="ol-note">Hora a hora: temperatura e chance de chuva do Open-Meteo; a concordância usa os ${models.length} modelos da comparação.</div>`;
 }
 
 // ---------- rendering ----------
@@ -603,8 +710,11 @@ function renderNow(cur, sources) {
         <div>Nascer do sol <b class="num">${hm(cur.sunrise)}</b></div>
         <div>Pôr do sol <b class="num">${hm(cur.sunset)}</b></div>
       </div>
-      <div class="now-src" id="now-src"></div>`;
+      <div class="now-src" id="now-src"></div>
+      <div class="outlook" id="outlook"></div>`;
+    lastCur = cur; lastNowSources = sources;
     applyCameraToNow();
+    renderOutlook();
   } else {
     main.innerHTML = '<p class="err">Não foi possível obter a condição atual do Open-Meteo.</p>';
   }

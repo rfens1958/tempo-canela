@@ -1,0 +1,15 @@
+{
+  "camera": "Praça João Corrêa, Canela",
+  "image_url": "https://files.rbt.psi.br/images/camerasdaserra/snapshots/6ac50858030d8003e45e1f7f/thumbnail.jpg",
+  "image_time": "2026-10-30T10:00:57-03:00",
+  "analyzed_at": "2026-10-30T10:25:00-03:00",
+  "summary": "Nevoeiro denso cobre a praça e esconde os morros ao fundo. O chão está todo molhado, com reflexos, sinal de chuva recente; não se veem pingos nem guarda-chuvas abertos.",
+  "category": "fog",
+  "daylight": "dia",
+  "sky": "encoberto",
+  "precipitation": "garoa",
+  "ground": "molhado",
+  "visibility": "reduzida",
+  "fog": true,
+  "confidence": "alta"
+}

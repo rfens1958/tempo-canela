@@ -1,0 +1,1 @@
+Ramo de dados: `camera.json` é atualizado de hora a hora por uma rotina do Claude que avalia a foto da câmera da Praça João Corrêa (camerasdaserra.com.br/cameras/143). A página em `main` lê este ficheiro.

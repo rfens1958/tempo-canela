@@ -65,36 +65,63 @@ section { min-width: 0; }
 .cam-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .cam-head a { font-size: 13px; }
 .cam-time { font-size: 12.5px; color: var(--muted); }
-.now-src { font-size: 12px; color: var(--muted); margin-top: 4px; }
-.now-src:empty { display: none; }
-.outlook { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 12px; display: grid; gap: 10px; min-width: 0; }
+[hidden] { display: none !important; }
+.cam img:not([src]) { visibility: hidden; }
+#now-icon { display: contents; }
+.now-main { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.now-main > * { min-width: 0; }
+/* headline */
+.hero { display: flex; align-items: center; gap: 12px; }
+.hero .big { font: 700 64px/1 var(--f-display); font-stretch: 80%; }
+.hero svg { width: 52px; height: 52px; color: var(--accent); flex: none; }
+.hero-txt { display: grid; gap: 2px; min-width: 0; }
+.now-cond { font-weight: 700; font-size: 18px; line-height: 1.25; }
+.hero-sub { font-size: 13.5px; color: var(--muted); }
+.hero-sub b { color: var(--ink); }
+/* verdict banner: green = calm, amber = change, orange = rain or alert */
+.verdict { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; border-left: 5px solid var(--ok);
+  background: color-mix(in srgb, var(--ok) 13%, var(--surface)); }
+.verdict.warn { border-left-color: var(--sun); background: color-mix(in srgb, var(--sun) 16%, var(--surface)); }
+.verdict.alert { border-left-color: var(--warm); background: color-mix(in srgb, var(--warm) 15%, var(--surface)); }
+.verdict:empty { display: none; }
+.verdict svg { width: 36px; height: 36px; flex: none; color: var(--ok); }
+.verdict.warn svg { color: var(--sun); } .verdict.alert svg { color: var(--warm); }
+.verdict div { display: grid; gap: 1px; min-width: 0; }
+.verdict b { font-size: 17px; line-height: 1.25; }
+.verdict span { font-size: 13px; color: var(--muted); }
+/* icon chips */
+.chips-now { display: flex; flex-wrap: wrap; gap: 6px; }
+.cn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); font: 600 13.5px var(--f-data); white-space: nowrap; }
+.cn small { font: 500 11.5px var(--f-body); color: var(--muted); }
+.cn .mi { width: 16px; height: 16px; color: var(--muted); flex: none; }
+/* hourly strip with rain-chance bars */
+.outlook { display: grid; gap: 8px; min-width: 0; }
 .outlook:empty { display: none; }
-.ol-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-weight: 600; font-size: 14px; }
-.ol-events { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 3px; }
-.ol-events li.alta { color: var(--warm); font-weight: 600; }
-.ol-events li.nota { color: var(--muted); list-style: circle; }
-.ol-calm { margin: 0; font-size: 14px; }
-.ol-nowcast { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; display: grid; gap: 4px; font-size: 14px; }
-.ol-nowcast p { margin: 0; }
-.ol-nowcast .when { color: var(--muted); font-weight: 400; font-size: 12.5px; }
-.ol-nowcast .detail { font-size: 12.5px; color: var(--muted); }
-.ol-nowcast .detail a { margin-left: 6px; white-space: nowrap; }
+.ol-label { font: 600 11.5px var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .ol-strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
-.ol-h { flex: none; width: 54px; display: grid; justify-items: center; gap: 2px; padding: 6px 0; border-radius: 8px; background: var(--surface-2); font-size: 12px; }
+.ol-h { flex: none; width: 56px; display: grid; justify-items: center; gap: 3px; padding: 7px 0 6px; border-radius: 8px; background: var(--surface-2); font-size: 12px; }
 .ol-h.wet { background: var(--rain-soft); }
 .ol-h .hh { color: var(--muted); }
-.ol-h svg { width: 22px; height: 22px; color: var(--accent); }
-.ol-h .t { font: 600 13px var(--f-data); }
-.ol-h .p { color: var(--rain); font: 500 11px var(--f-data); }
-.ol-note { font-size: 12px; color: var(--muted); }
-#now-icon { display: contents; }
-.now-main { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: grid; gap: 6px; align-content: start; }
-.now-temp { display: flex; align-items: center; gap: 14px; }
-.now-temp .big { font: 700 64px/1 var(--f-display); font-stretch: 80%; }
-.now-temp svg { width: 54px; height: 54px; color: var(--accent); }
-.now-cond { font-weight: 600; font-size: 17px; }
-.now-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px 16px; font-size: 13.5px; color: var(--muted); margin-top: 6px; }
-.now-facts b { color: var(--ink); font-weight: 600; }
+.ol-h svg { width: 24px; height: 24px; color: var(--accent); }
+.ol-h .t { font: 600 13.5px var(--f-data); }
+.ol-h .pb { width: 38px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--rain) 18%, transparent); overflow: hidden; }
+.ol-h .pb i { display: block; height: 100%; background: var(--rain); }
+.ol-h .p { color: var(--rain); font: 600 11.5px var(--f-data); }
+.ev-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.evc { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.evc.alta { border-color: var(--warm); color: var(--warm); font-weight: 700; }
+.evc.média { border-color: var(--sun); color: var(--sun); font-weight: 600; }
+/* everything long, collapsed */
+.more summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent); width: max-content; }
+.more-body { display: grid; gap: 6px; padding-top: 8px; font-size: 13.5px; }
+.more-body p { margin: 0; }
+.more-body .when { color: var(--muted); font-size: 12.5px; }
+.more-body .detail, .now-src { font-size: 12.5px; color: var(--muted); margin: 0; }
+.now-src:empty { display: none; }
+.more-body .detail a { margin-left: 6px; white-space: nowrap; }
+.ol-events { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.ol-events li.alta { color: var(--warm); font-weight: 600; }
+.ol-events li.nota { color: var(--muted); list-style: circle; }
 .now-list { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 0; }
 .now-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.3fr); gap: 12px; align-items: center; padding: 8px 18px; border-bottom: 1px solid var(--line); }
 .now-row:last-child { border-bottom: 0; }
@@ -202,7 +229,6 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 @media (max-width: 820px) {
   .now { grid-template-columns: minmax(0, 1fr); }
-  .cam { order: -1; }
   .day { grid-template-columns: 74px 28px minmax(0, 1fr) 76px; grid-template-areas: "when ic cond temps" "rain rain agree agree"; row-gap: 6px; }
   .day .temps { grid-area: temps; justify-items: end; }
   .day .temps .tv { font-size: 15px; }
@@ -425,6 +451,15 @@ const ICONS = {
   snow: '<path d="M8 18h15a5 5 0 0 0 0-10 7 7 0 0 0-14 2 4 4 0 0 0-1 8z" fill="currentColor"/><g fill="currentColor"><circle cx="11" cy="24" r="1.6"/><circle cx="16" cy="27" r="1.6"/><circle cx="21" cy="24" r="1.6"/></g>',
 };
 const icon = (cat, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${ICONS[cat] || ICONS.cloud}</svg>`;
+// Small line icons for the "Agora" chips
+const mini = (paths) => `<svg class="mi" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+const MINI = {
+  wind: mini('<path d="M3 9h11a3 3 0 1 0-3-3"/><path d="M3 14h15a3 3 0 1 1-3 3"/><path d="M3 19h6"/>'),
+  drop: mini('<path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/>'),
+  rise: mini('<path d="M3 19h18"/><path d="M7 19a5 5 0 0 1 10 0"/><path d="M12 3v7"/><path d="M9 6l3-3 3 3"/>'),
+  set: mini('<path d="M3 19h18"/><path d="M7 19a5 5 0 0 1 10 0"/><path d="M12 3v7"/><path d="M9 7l3 3 3-3"/>'),
+  eye: mini('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+};
 
 // ---------- source loaders ----------
 // Each loader resolves to source objects: { id, name, org, days: {date: {max,min,pr,cat,text}}, hourly: {key: {t,p}}, now }
@@ -457,7 +492,7 @@ async function loadOpenMeteoModels() {
 async function loadOpenMeteoNow() {
   const q = new URLSearchParams({
     latitude: LOC.lat, longitude: LOC.lon, timezone: LOC.tz,
-    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,precipitation,cloud_cover,pressure_msl',
+    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,precipitation,cloud_cover,pressure_msl,is_day',
     hourly: 'temperature_2m,precipitation_probability,precipitation,weather_code,cloud_cover,wind_gusts_10m,visibility',
     daily: 'sunrise,sunset', forecast_days: 2,
   });
@@ -615,8 +650,9 @@ function applyCameraToNow() {
   if (!cond || !camFresh(c)) return;
   cond.textContent = camCondition(c);
   $('now-icon').innerHTML = icon(c.category === 'night' ? 'cloud' : c.category, '');
-  $('now-vis').innerHTML = `Visibilidade <b>${esc(c.visibility)}</b>`;
-  $('now-vis').hidden = false;
+  // Visibility only earns a chip when it is not good
+  $('now-vis').innerHTML = `${MINI.eye}${esc(c.visibility)}`;
+  $('now-vis').hidden = c.visibility === 'boa';
   $('now-src').textContent = `Condição observada na câmera do Mundo a Vapor às ${camHm(c.image_time)}; números do Open-Meteo (modelo previa: ${$('now-cond').dataset.model}).`;
 }
 
@@ -692,23 +728,37 @@ function renderOutlook() {
   const nowWet = cam ? camWet : modelWetNow;
   const nowFog = cam ? cam.fog : [45, 48].includes(lastCur.weather_code);
   const tNow = lastCur.temperature_2m;
-  const ev = []; // [severity, text]: significant changes
-  const notes = []; // possibilities without majority support
+  // Each finding has a short chip label (shown) and a full sentence (in "Detalhes")
+  const ev = []; // significant changes: { sev, short, long }
+  const notes = []; // possibilities without majority support: { short, long }
+  let verdict = null; // the one-line answer for the banner, by priority
 
   const storm = hr.find((x) => x.code >= 95);
-  if (storm && wetHour(storm)) ev.push(['alta', `Risco de trovoada por volta das ${storm.h}`]);
-  else if (storm) notes.push(`Trovoada isolada possível por volta das ${storm.h}, prevista por um só modelo`);
+  if (storm && wetHour(storm)) {
+    ev.push({ sev: 'alta', short: `Trovoada ${storm.h}`, long: `Risco de trovoada por volta das ${storm.h}` });
+    verdict = { lvl: 'alert', cat: 'storm', title: `Trovoada por volta das ${storm.h}`, sub: `${storm.chance}% de chance de chuva` };
+  } else if (storm) {
+    notes.push({ short: `Trovoada isolada? ${storm.h}`, long: `Trovoada isolada possível por volta das ${storm.h}, prevista por um só modelo` });
+  }
   if (!nowWet) {
     const r = hr.find(wetHour);
-    if (radarStart && wetHour(radarStart)) ev.push(['alta', `Radar e satélite: chuva deve chegar por volta das ${radarStart.h}`]);
-    else if (r) ev.push(['alta', `Chuva deve começar por volta das ${r.h} (${agree(r)})`]);
-    else {
+    const start = radarStart && wetHour(radarStart) ? radarStart : r;
+    if (start) {
+      const byRadar = start === radarStart;
+      ev.push({ sev: 'alta', short: `Chuva ${start.h}`, long: byRadar ? `Radar e satélite: chuva deve chegar por volta das ${start.h}` : `Chuva deve começar por volta das ${start.h} (${agree(start)})` });
+      verdict ||= { lvl: 'alert', cat: 'rain', title: `Chuva a partir das ${start.h}`, sub: `${start.chance}% de chance${byRadar ? ' · visto no radar' : ''}` };
+    } else {
       const top = hr.reduce((a, b) => (b.chance > a.chance ? b : a));
-      if (top.chance >= 30 || top.wet >= 3) notes.push(`Possibilidade de chuva por volta das ${top.h} (${agree(top)}), sem acordo da maioria dos modelos`);
+      if (top.chance >= 30 || top.wet >= 3) notes.push({ short: `Chuva possível ${top.h} · ${top.chance}%`, long: `Possibilidade de chuva por volta das ${top.h} (${agree(top)}), sem acordo da maioria dos modelos` });
     }
   } else {
     const k = hr.findIndex((x, i) => dryHour(x) && hr[i + 1] && dryHour(hr[i + 1]));
-    if (k >= 0) ev.push(['média', `Chuva deve parar por volta das ${hr[k].h}`]);
+    if (k >= 0) {
+      ev.push({ sev: 'média', short: `Para ${hr[k].h}`, long: `Chuva deve parar por volta das ${hr[k].h}` });
+      verdict ||= { lvl: 'warn', cat: 'showers', title: `Chuva para por volta das ${hr[k].h}`, sub: 'chove agora' };
+    } else {
+      verdict ||= { lvl: 'alert', cat: 'rain', title: `Chuva continua ${label}`, sub: 'chove agora' };
+    }
   }
   const hi = hr.reduce((a, b) => (b.t > a.t ? b : a)), lo = hr.reduce((a, b) => (b.t < a.t ? b : a));
   // Warming that peaks between 9h and 17h and cooling towards the evening or night are the normal daily cycle:
@@ -716,71 +766,85 @@ function renderOutlook() {
   const hourOf = (x) => +x.key.slice(11, 13);
   if (hi.t - tNow >= 4) {
     const odd = hi.t - tNow >= 8 || hourOf(hi) < 9 || hourOf(hi) > 17;
-    if (odd) ev.push(['média', `Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}, fora do normal para o horário`]);
-    else notes.push(`Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}`);
+    if (odd) {
+      ev.push({ sev: 'média', short: `Esquenta ${fmt(hi.t)}° ${hi.h}`, long: `Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}, fora do normal para o horário` });
+      verdict ||= { lvl: 'warn', cat: 'sun', title: `Esquenta para ${fmt(hi.t)}° até as ${hi.h}`, sub: 'fora do normal para o horário' };
+    } else notes.push({ short: `Máx. ${fmt(hi.t)}° ${hi.h}`, long: `Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}` });
   }
   if (tNow - lo.t >= 4) {
     const odd = tNow - lo.t >= 8 || (hourOf(lo) >= 9 && hourOf(lo) <= 15);
-    if (odd) ev.push(['média', `Temperatura cai para ${fmt(lo.t)}° por volta das ${lo.h}, fora do normal para o horário`]);
-    else notes.push(`Temperatura cai para ${fmt(lo.t)}° até as ${lo.h}, queda normal do fim do dia`);
+    if (odd) {
+      ev.push({ sev: 'média', short: `Esfria ${fmt(lo.t)}° ${lo.h}`, long: `Temperatura cai para ${fmt(lo.t)}° por volta das ${lo.h}, fora do normal para o horário` });
+      verdict ||= { lvl: 'warn', cat: 'cloud', title: `Esfria para ${fmt(lo.t)}° até as ${lo.h}`, sub: 'fora do normal para o horário' };
+    } else notes.push({ short: `${fmt(lo.t)}° às ${lo.h}`, long: `Temperatura cai para ${fmt(lo.t)}° até as ${lo.h}, queda normal do fim do dia` });
   }
   // Gusts, fog and sky come from the best-match model alone, so they are notes unless the gusts are severe
   const g = hr.reduce((a, b) => ((b.gust ?? 0) > (a.gust ?? 0) ? b : a));
-  if ((g.gust ?? 0) >= 70) ev.push(['alta', `Rajadas fortes, de até ${fmt(g.gust)} km/h, por volta das ${g.h}`]);
-  else if ((g.gust ?? 0) >= 50) notes.push(`Rajadas de até ${fmt(g.gust)} km/h por volta das ${g.h}`);
+  if ((g.gust ?? 0) >= 70) {
+    ev.push({ sev: 'alta', short: `Rajadas ${fmt(g.gust)} km/h ${g.h}`, long: `Rajadas fortes, de até ${fmt(g.gust)} km/h, por volta das ${g.h}` });
+    verdict ||= { lvl: 'alert', cat: 'cloud', title: `Rajadas fortes por volta das ${g.h}`, sub: `até ${fmt(g.gust)} km/h` };
+  } else if ((g.gust ?? 0) >= 50) notes.push({ short: `Rajadas ${fmt(g.gust)} km/h ${g.h}`, long: `Rajadas de até ${fmt(g.gust)} km/h por volta das ${g.h}` });
   if (nowFog) {
     // Only when the model also has fog now (low visibility this hour); then two clear hours in a row
     const visNow = H.visibility?.[H.time.indexOf(nowKey)];
     const k = visNow != null && visNow < 5000
       ? hr.findIndex((x, i) => x.vis != null && x.vis >= 5000 && !foggy(x) && hr[i + 1] && hr[i + 1].vis >= 5000) : -1;
-    if (k >= 0) notes.push(`Nevoeiro tende a dissipar por volta das ${hr[k].h}`);
+    if (k >= 0) notes.push({ short: `Nevoeiro sai ${hr[k].h}`, long: `Nevoeiro tende a dissipar por volta das ${hr[k].h}` });
   } else {
     const f = hr.find(foggy);
-    if (f) notes.push(`Nevoeiro pode voltar por volta das ${f.h}`);
+    if (f) notes.push({ short: `Nevoeiro ${f.h}`, long: `Nevoeiro pode voltar por volta das ${f.h}` });
   }
-  if (!ev.some(([, t]) => /chuva|trovoada/i.test(t))) {
+  if (!ev.some((e) => /chuva|trovoada/i.test(e.long))) {
     if (lastCur.cloud_cover >= 80) {
       const s = hr.find((x) => x.cloud <= 40 && dryHour(x));
-      if (s) notes.push(`${s.key < lastCur.sunset ? 'Sol entre nuvens' : 'Céu deve abrir'} a partir das ${s.h}`);
+      if (s) notes.push({ short: `Abre ${s.h}`, long: `${s.key < lastCur.sunset ? 'Sol entre nuvens' : 'Céu deve abrir'} a partir das ${s.h}` });
     } else if (lastCur.cloud_cover <= 40) {
       const s = hr.find((x) => x.cloud >= 85);
-      if (s) notes.push(`Céu pode fechar a partir das ${s.h}`);
+      if (s) notes.push({ short: `Fecha ${s.h}`, long: `Céu pode fechar a partir das ${s.h}` });
     }
   }
 
   const maxChance = Math.max(...hr.map((x) => x.chance));
-  const head = ev.length
-    ? `<span class="pill low">Mudança significativa</span><span>${label}</span>`
-    : `<span class="pill high">Sem mudança significativa</span><span>${label}</span>`;
-  const calm = ev.length ? '' : `<p class="ol-calm">${nowWet ? 'A chuva deve continuar' : 'O tempo deve se manter como está'}: temperatura entre ${fmt(lo.t)}° e ${fmt(hi.t)}°, chance de chuva de até ${maxChance}%.</p>`;
-  const items = [...ev.map(([sev, t]) => `<li class="${sev}">${esc(t)}</li>`), ...notes.map((t) => `<li class="nota">${esc(t)}</li>`)];
-  const body = calm + (items.length ? `<ul class="ol-events">${items.join('')}</ul>` : '');
+  const possible = notes.find((n) => n.short.startsWith('Chuva possível'));
+  verdict ||= {
+    lvl: 'ok', cat: lastCur.is_day === 0 ? 'cloud' : 'sun', title: `Sem chuva ${label}`,
+    sub: possible ? `${possible.short.replace('Chuva possível', 'possível às')}` : `chance máx. ${maxChance}% · ${fmt(lo.t)}° a ${fmt(hi.t)}°`,
+  };
+  $('verdict').className = `verdict ${verdict.lvl}`;
+  $('verdict').innerHTML = `${icon(verdict.cat, '')}<div><b>${esc(verdict.title)}</b><span>${esc(verdict.sub)}</span></div>`;
+
   // Rain icon only where rain is likely; otherwise the sky from the best-match model
   const hourCat = (x) => wetHour(x) ? (x.code >= 95 ? 'storm' : [80, 81, 82].includes(x.code) ? 'showers' : 'rain')
     : foggy(x) ? 'fog' : x.cloud < 25 ? 'sun' : x.cloud < 70 ? 'partly' : 'cloud';
   const strip = hr.map((x) => `
-    <div class="ol-h${wetHour(x) ? ' wet' : ''}" title="${esc(`${x.chance}% de chance de chuva${x.ens ? ` (${x.ens.wet} de ${x.ens.total} cenários)` : ''}${x.n ? `; chuva em ${x.wet} de ${x.n} modelos` : ''}${x.adj ? '; ajustado pela câmera' : ''}`)}">
+    <div class="ol-h${wetHour(x) ? ' wet' : ''}" title="${esc(`${x.chance}% de chance de chuva${x.ens ? ` (${x.ens.wet} de ${x.ens.total} cenários)` : ''}${x.n ? `; chuva em ${x.wet} de ${x.n} modelos` : ''}${x.adj ? '; ajustado pela observação' : ''}`)}">
       <span class="hh">${x.next && x.key.endsWith('T00:00') ? 'amanhã' : x.h}</span>${icon(hourCat(x), '')}
-      <span class="t">${fmt(x.t)}°</span><span class="p">${x.chance}%${x.adj ? '*' : ''}</span>
+      <span class="t">${fmt(x.t)}°</span>
+      <span class="pb"><i style="width:${x.chance}%"></i></span>
+      <span class="p">${x.chance}%${x.adj ? '*' : ''}</span>
     </div>`).join('');
+  // The possibility already shown under the green verdict is not repeated as a chip
+  const chips = [...ev.map((e) => `<span class="evc ${e.sev}">${esc(e.short)}</span>`),
+    ...notes.filter((n) => !(verdict.lvl === 'ok' && n === possible)).map((n) => `<span class="evc nota">${esc(n.short)}</span>`)];
+  box.innerHTML = `
+    <div class="ol-label">Próximas horas · chance de chuva</div>
+    <div class="ol-strip">${strip}</div>
+    ${chips.length ? `<div class="ev-chips">${chips.join('')}</div>` : ''}`;
+
+  // Everything longer goes to "Detalhes"
   const nEns = Math.max(0, ...hr.map((x) => x.ens?.total ?? 0));
   const source = nEns
     ? `Chance de chuva: parte dos ${nEns} cenários dos ensembles ECMWF e GFS com chuva em cada hora`
     : `Chance de chuva: parte dos ${models.length} modelos com chuva em cada hora`;
-  const nowcast = nc ? `
-    <div class="ol-nowcast">
-      <p><b>Radar e satélite</b> <span class="when">(radar ${esc(nc.radar_time)})</span>: ${esc(nc.nowcast_summary)}</p>
+  const adjNote = hr.some((x) => x.adj) ? ` (*) Horas ajustadas pela observação: ${camNote || 'radar e satélite.'}` : '';
+  const items = [...ev.map((e) => `<li class="${e.sev}">${esc(e.long)}</li>`), ...notes.map((n) => `<li class="nota">${esc(n.long)}</li>`)];
+  $('ol-details').innerHTML = `
+    ${nc ? `<p><b>Radar e satélite</b> <span class="when">(radar ${esc(nc.radar_time)})</span>: ${esc(nc.nowcast_summary)}</p>
       <p class="detail">${esc(nc.radar_summary)} ${esc(nc.satellite_summary)}
         <a href="https://radar-poa-13561874921.us-east1.run.app/" target="_blank" rel="noopener">Radar ↗</a>
-        <a href="https://www.star.nesdis.noaa.gov/goes/sector.php?sat=G19&amp;sector=ssa" target="_blank" rel="noopener">Satélite ↗</a></p>
-    </div>` : '';
-  const adjNote = hr.some((x) => x.adj) ? ` (*) Horas ajustadas pela observação: ${camNote || 'radar e satélite.'}` : '';
-  box.innerHTML = `
-    <div class="ol-head">${head}</div>
-    ${nowcast}
-    ${body}
-    <div class="ol-strip">${strip}</div>
-    <div class="ol-note">${source}; temperatura: mediana dos ${models.length} modelos.${adjNote}</div>`;
+        <a href="https://www.star.nesdis.noaa.gov/goes/sector.php?sat=G19&amp;sector=ssa" target="_blank" rel="noopener">Satélite ↗</a></p>` : ''}
+    ${items.length ? `<ul class="ol-events">${items.join('')}</ul>` : ''}
+    <p class="detail">Previsão ${label}. ${source}; temperatura: mediana dos ${models.length} modelos.${adjNote}</p>`;
 }
 
 // ---------- autoverificação ----------
@@ -873,23 +937,33 @@ function renderNow(cur, sources) {
   if (cur) {
     const info = wmoInfo(cur.weather_code);
     const hm = (s) => s ? s.slice(11, 16) : '–';
+    // Read at a glance: headline, verdict for the next hours, a few icon chips, the hourly strip;
+    // everything longer sits in "Detalhes"
     main.innerHTML = `
-      <div class="eyebrow">Open-Meteo · melhor modelo para o local</div>
-      <div class="now-temp"><span class="big num">${fmt(cur.temperature_2m)}°</span><span id="now-icon">${icon(info.cat, '')}</span></div>
-      <div class="now-cond" id="now-cond" data-model="${esc(info.text.toLowerCase())}">${esc(info.text)}</div>
-      <div class="now-facts">
-        <div id="now-vis" hidden></div>
-        <div>Sensação <b class="num">${fmt(cur.apparent_temperature)}°</b></div>
-        <div>Umidade <b class="num">${fmt(cur.relative_humidity_2m)}%</b></div>
-        <div>Vento <b class="num">${fmt(cur.wind_speed_10m)} km/h</b></div>
-        <div>Rajadas <b class="num">${fmt(cur.wind_gusts_10m)} km/h</b></div>
-        <div>Nuvens <b class="num">${fmt(cur.cloud_cover)}%</b></div>
-        <div>Pressão <b class="num">${fmt(cur.pressure_msl)} hPa</b></div>
-        <div>Nascer do sol <b class="num">${hm(cur.sunrise)}</b></div>
-        <div>Pôr do sol <b class="num">${hm(cur.sunset)}</b></div>
+      <div class="hero">
+        <span class="big num">${fmt(cur.temperature_2m)}°</span><span id="now-icon">${icon(info.cat, '')}</span>
+        <div class="hero-txt">
+          <div class="now-cond" id="now-cond" data-model="${esc(info.text.toLowerCase())}">${esc(info.text)}</div>
+          <div class="hero-sub">Sensação <b class="num">${fmt(cur.apparent_temperature)}°</b></div>
+        </div>
       </div>
-      <div class="now-src" id="now-src"></div>
-      <div class="outlook" id="outlook"></div>`;
+      <div class="verdict" id="verdict"></div>
+      <div class="chips-now">
+        <span class="cn" title="Vento e rajadas">${MINI.wind}${fmt(cur.wind_speed_10m)}<small>km/h · raj. ${fmt(cur.wind_gusts_10m)}</small></span>
+        <span class="cn" title="Umidade">${MINI.drop}${fmt(cur.relative_humidity_2m)}%</span>
+        <span class="cn" title="Nascer do sol">${MINI.rise}${hm(cur.sunrise)}</span>
+        <span class="cn" title="Pôr do sol">${MINI.set}${hm(cur.sunset)}</span>
+        <span class="cn" id="now-vis" title="Visibilidade (câmera)" hidden></span>
+      </div>
+      <div class="outlook" id="outlook"></div>
+      <details class="more" id="now-more">
+        <summary>Detalhes</summary>
+        <div class="more-body">
+          <div id="ol-details"></div>
+          <p class="now-src" id="now-src"></p>
+          <p class="now-src">Agora: Open-Meteo, melhor modelo para o local · nuvens ${fmt(cur.cloud_cover)}% · pressão ${fmt(cur.pressure_msl)} hPa.</p>
+        </div>
+      </details>`;
     lastCur = cur; lastNowSources = sources;
     applyCameraToNow();
     renderOutlook();

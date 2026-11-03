@@ -6,6 +6,7 @@
 // renovação anterior, por mais vezes que a página seja aberta.
 import Anthropic from "@anthropic-ai/sdk";
 import { Buffer } from "node:buffer";
+import { hourly, recordCamera } from "./verify.js";
 
 // Câmera 130 de camerasdaserra.com.br; as chaves do KV levam o número (e a versão da análise),
 // para outra câmera ou outro formato de resposta começar do zero
@@ -91,6 +92,11 @@ export default {
     if (request.method !== "GET") return json({ error: "Use GET." }, 405, request);
     const path = new URL(request.url).pathname;
 
+    if (path === "/stats") {
+      const stats = await env.CAMERA.get("stats", "json");
+      return json(stats || { days: 0 }, 200, request, { "Cache-Control": "public, max-age=600" });
+    }
+
     if (path === "/foto") {
       const photo = await env.CAMERA.get(KEY_PHOTO, "arrayBuffer");
       if (!photo) return new Response("Ainda não há foto avaliada.", { status: 404, headers: corsHeaders(request) });
@@ -165,6 +171,12 @@ export default {
     // Photo first, so /foto never serves an older photo than the stored assessment describes
     await env.CAMERA.put(KEY_PHOTO, photo);
     await env.CAMERA.put(KEY_LAST, JSON.stringify(result));
+    ctx.waitUntil(recordCamera(env, result).catch(() => {}));
     return json(result, 200, request, { "X-Cache": "MISS" });
+  },
+
+  // Autoverificação: registo de previsões e observações de hora em hora (ver verify.js)
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(hourly(env, new Date(event.scheduledTime)));
   },
 };

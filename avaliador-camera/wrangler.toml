@@ -3,6 +3,10 @@ main = "src/index.js"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Autoverificação: registo de previsões e observações aos 7 minutos de cada hora
+[triggers]
+crons = ["7 * * * *"]
+
 # Última foto avaliada e a sua avaliação (renovadas no máximo 1 vez por hora)
 [[kv_namespaces]]
 binding = "CAMERA"

@@ -169,6 +169,19 @@ tr.median th, tr.median td { background: var(--surface-2); font-weight: 700; }
 .links a b { font-weight: 700; }
 .links a span { color: var(--muted); font-size: 12.5px; }
 
+/* Índice de acertos */
+.stats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.stats > * { min-width: 0; }
+.stats h3 { margin: 0 0 6px; font: 600 14px var(--f-body); }
+.st-head { margin: 0; font-size: 14px; }
+.st-note { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); max-width: 90ch; }
+.st-table th, .st-table td { text-align: right; }
+.st-table thead th { white-space: normal; vertical-align: bottom; }
+.st-table th:first-child, .st-table tbody th { text-align: left; font-weight: 500; }
+.st-table td { font: 500 13px var(--f-data); }
+.st-table tr.main th { font-weight: 700; }
+.st-cal { margin: 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 2px; }
+
 /* Secções recolhidas */
 .fold { min-width: 0; border-top: 1px solid var(--line); padding-top: 14px; }
 .fold summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 12px; }
@@ -256,6 +269,12 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
     <div class="chartbox"><h3>Chuva (mm/h)</h3><div class="cv short"><canvas id="c-rain"></canvas></div></div>
   </div>
 </section>
+
+<details class="fold" id="fold-stats">
+  <summary><h2>Índice de acertos</h2><span class="hint">Mostrar</span></summary>
+  <p class="sub">A página confere-se sozinha. De hora a hora guarda o que os 10 modelos e os ensembles previam; no dia seguinte compara com o que aconteceu no aeroporto de Caxias do Sul (METAR, a 40 km de Canela) e com a câmera de Canela. Últimos 30 dias.</p>
+  <div id="stats" class="stats"></div>
+</details>
 
 <details class="fold" id="fold-widgets">
   <summary><h2>Widgets oficiais</h2><span class="hint">Mostrar</span></summary>
@@ -620,7 +639,10 @@ function renderOutlook() {
   };
   const hr = H.time.map((key, i) => ({ key, i })).filter(({ key }) => key > nowKey && key <= endKey).map(({ key, i }) => {
     const m = modelsAt(key), e = lastEnsHour[key]?.total >= 20 ? lastEnsHour[key] : null;
-    const chance = e ? Math.round(e.wet / e.total * 100) : m.n ? Math.round(m.wet / m.n * 100) : (H.precipitation_probability[i] ?? 0);
+    let chance = e ? Math.round(e.wet / e.total * 100) : m.n ? Math.round(m.wet / m.n * 100) : (H.precipitation_probability[i] ?? 0);
+    // Learned calibration: what actually happened when the ensembles gave this chance
+    const cal = e ? learnedCalib(chance) : null;
+    if (cal != null) chance = cal;
     return {
       key, h: +key.slice(11, 13) + 'h', next: key.slice(0, 10) !== today,
       t: m.t ?? H.temperature_2m[i], code: H.weather_code[i], cloud: H.cloud_cover[i], gust: H.wind_gusts_10m[i], vis: H.visibility?.[i],
@@ -756,6 +778,79 @@ function renderOutlook() {
     <div class="ol-note">${source}; temperatura: mediana dos ${models.length} modelos.${adjNote}</div>`;
 }
 
+// ---------- autoverificação ----------
+// The Worker logs forecasts and observations every hour and checks them daily (avaliador-camera/src/verify.js).
+// /stats returns the last 30 days and, once there are 14 checked days, the learned corrections applied here.
+const VERIFY_SINCE = '2026-11-03';
+let lastStats = null;
+const learning = () => (lastStats?.learning?.active ? lastStats.learning : null);
+
+// Remove each model's measured temperature bias from its forecasts
+function applyLearning(models) {
+  const L = learning();
+  if (!L) return;
+  models.forEach((s) => {
+    const b = L.tempBias?.[s.id];
+    if (!b) return;
+    Object.values(s.days).forEach((d) => { if (d.max != null) d.max -= b; if (d.min != null) d.min -= b; });
+    Object.values(s.hourly).forEach((h) => { if (h.t != null) h.t -= b; });
+  });
+}
+function learnedWeights() {
+  const W = learning()?.weights;
+  if (!W || !Object.keys(W).length) return null;
+  const avg = Object.values(W).reduce((a, b) => a + b, 0) / Object.keys(W).length;
+  return (s) => W[s.id] ?? avg; // sources without their own record weigh like an average model
+}
+const weightedMean = (pairs) => {
+  let sw = 0, sv = 0;
+  pairs.forEach(([v, w]) => { if (v != null && w > 0) { sv += v * w; sw += w; } });
+  return sw ? sv / sw : null;
+};
+const learnedCalib = (chance) => learning()?.rainCalib?.[Math.min(9, Math.floor(chance / 10))] ?? null;
+
+const MODEL_NAME = Object.fromEntries(OM_MODELS.map((m) => [m.id, m.name]));
+const RULE_NAME = { pagina: 'Aviso da página (ensembles e maioria)', ensemble: 'Ensembles com 50% ou mais', maioria: 'Maioria dos 10 modelos' };
+const dm = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '–';
+const pc = (v) => (v == null ? '–' : v + '%');
+
+function renderStats() {
+  const box = $('stats'), S = lastStats;
+  if (!S || !S.days) {
+    box.innerHTML = `<p class="st-note">O registo automático começou em ${dm(VERIFY_SINCE)}/${VERIFY_SINCE.slice(0, 4)}. A primeira conferência sai à 1h da madrugada seguinte; as correções começam com 14 dias conferidos.</p>`;
+    return;
+  }
+  const L = S.learning, left = Math.max(0, L.minDays - S.days);
+  const ref = S.sites.sbcx, can = S.sites.canela;
+  const ruleRows = ['pagina', 'ensemble', 'maioria'].map((r) => [RULE_NAME[r], ref.rain[r], true])
+    .concat(OM_MODELS.map((m) => [m.name, ref.rain[m.id], false]).sort((a, b) => (b[1]?.acc ?? -1) - (a[1]?.acc ?? -1)));
+  const rainTable = `<div class="tablebox"><table class="st-table">
+    <thead><tr><th>Regra ou modelo</th><th>Chuvas previstas</th><th>Falsos alarmes</th><th>Acerto geral</th><th>Horas</th></tr></thead>
+    <tbody>${ruleRows.map(([name, s, main]) => `<tr class="${main ? 'main' : ''}"><th>${esc(name)}</th><td>${pc(s?.pod)}</td><td>${pc(s?.far)}</td><td>${pc(s?.acc)}</td><td>${s?.n ?? 0}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+  const tempRows = OM_MODELS.map((m) => [m, ref.temp[m.id]]).filter(([, t]) => t?.n).sort((a, b) => a[1].mae - b[1].mae);
+  const tempTable = tempRows.length ? `<div class="tablebox"><table class="st-table">
+    <thead><tr><th>Modelo</th><th>Erro médio</th><th>Desvio sistemático</th>${L.active ? '<th>Peso</th>' : ''}<th>Horas</th></tr></thead>
+    <tbody>${tempRows.map(([m, t]) => `<tr><th>${esc(m.name)}</th><td>${fmt(t.mae, 1)} °C</td><td>${t.bias > 0 ? '+' : ''}${fmt(t.bias, 1)} °C</td>${L.active ? `<td>${L.weights[m.id] != null ? Math.round(L.weights[m.id] * 100) + '%' : '–'}</td>` : ''}<td>${t.n}</td></tr>`).join('')}</tbody>
+  </table></div>` : '<p class="st-note">Ainda sem temperaturas observadas.</p>';
+  const cp = can?.rain?.pagina;
+  const canela = cp?.n
+    ? `Em Canela, a câmera observou ${can.obsHours} hora(s) com análise. Nessas horas, o aviso de chuva da página acertou ${pc(cp.acc)} (chuvas previstas: ${pc(cp.pod)}; falsos alarmes: ${pc(cp.far)}).`
+    : 'Em Canela ainda não há horas conferidas pela câmera.';
+  const rel = ref.reliability.filter((r) => r.n > 0);
+  const calib = rel.length ? `<ul class="st-cal">${rel.map((r) => `<li>Ensembles com ${r.bin} de chance: choveu em <b>${pc(r.observed)}</b> dos casos (${r.n} horas)</li>`).join('')}</ul>` : '';
+  box.innerHTML = `
+    <p class="st-head"><b>${S.days} dia(s) conferido(s)</b>, de ${dm(S.from)} a ${dm(S.to)}. Correções: ${L.active
+      ? '<b>ativas</b> (viés de temperatura de cada modelo retirado, consenso de máxima e mínima ponderado pelo acerto e chance de chuva hora a hora calibrada).'
+      : `começam com ${L.minDays} dias conferidos (faltam ${left}).`}</p>
+    <div><h3>Chuva hora a hora · aeroporto de Caxias do Sul</h3>${rainTable}
+      <p class="st-note">"Chuvas previstas": das horas em que choveu, quantas a regra previu. "Falsos alarmes": dos avisos de chuva, quantos não se confirmaram. Previsões feitas de 1 a 24 horas antes.</p></div>
+    <p class="st-note">${canela}</p>
+    <div><h3>Temperatura · erro de cada modelo</h3>${tempTable}
+      <p class="st-note">Desvio sistemático positivo: o modelo costuma prever mais quente do que acontece.</p></div>
+    ${calib ? `<div><h3>Calibração da chance de chuva</h3>${calib}</div>` : ''}`;
+}
+
 // ---------- rendering ----------
 const STATUS = [
   ['om', 'Open-Meteo · 10 modelos'], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'], ['cam', 'Câmera, radar e satélite'],
@@ -811,9 +906,14 @@ function renderNow(cur, sources) {
 }
 
 function consensus(sources, dates) {
+  const w = learnedWeights();
   return dates.map((date) => {
-    const vals = sources.map((s) => s.days[date]).filter(Boolean);
+    const pairs = sources.map((s) => [s, s.days[date]]).filter(([, v]) => v);
+    const vals = pairs.map(([, v]) => v);
     const maxs = vals.map((v) => v.max), mins = vals.map((v) => v.min), prs = vals.map((v) => v.pr).filter((x) => x != null);
+    // Once learning is active, max/min are a mean weighted by each model's recent accuracy
+    const tmax = w ? weightedMean(pairs.map(([s, v]) => [v.max, w(s)])) : median(maxs);
+    const tmin = w ? weightedMean(pairs.map(([s, v]) => [v.min, w(s)])) : median(mins);
     // Models label any trace of rain as drizzle, so the day's condition comes from the median rain amount;
     // only the dry/cloudy part comes from the sources' own labels.
     const pr = median(prs);
@@ -835,7 +935,7 @@ function consensus(sources, dates) {
     }
     return {
       date, n: vals.length, cat, text,
-      max: median(maxs), min: median(mins), maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
+      max: tmax, min: tmin, maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
       pr, prHi: maxOf(prs), wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
     };
   });
@@ -925,10 +1025,14 @@ async function loadAll() {
   const track = (k, p) => p.then((v) => { st[k] = 'ok'; renderStatus(st); return v; }, (e) => { st[k] = e.name === 'AbortError' ? 'tempo esgotado' : e.message; renderStatus(st); return null; });
   // The camera assessment can take several seconds, so it renders on its own without holding up the forecast
   track('cam', loadCamera()).then(renderCamera);
-  const [om, cur, ens, metno, wttr, wo] = await Promise.all([
+  const [om, cur, ens, metno, wttr, wo, stats] = await Promise.all([
     track('om', loadOpenMeteoModels()), track('om', loadOpenMeteoNow()).catch(() => null), track('ens', loadEnsemble()),
     track('metno', loadMetNo()), track('wttr', loadWttr()), track('wo', loadWetteronline()),
+    fetchWithTimeout(CAM_WORKER + 'stats', 15000).catch(() => null),
   ]);
+  lastStats = stats;
+  applyLearning(om || []);
+  renderStats();
   const sources = [...(om || []), metno, wttr, wo].filter(Boolean);
   const today = localDate(new Date());
   const dates = Array.from({ length: DAYS }, (_, i) => addDays(today, i));

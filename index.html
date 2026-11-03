@@ -113,7 +113,9 @@ section { min-width: 0; }
 .day svg.ic { width: 30px; height: 30px; color: var(--accent); }
 .day .cond { font-size: 13.5px; }
 .day .cond small { display: block; color: var(--muted); font-size: 12px; }
-.temps { display: flex; align-items: baseline; gap: 4px; font: 600 16px var(--f-data); white-space: nowrap; }
+.temps { display: grid; gap: 2px; justify-items: start; }
+.temps .tv { display: flex; align-items: baseline; gap: 4px; font: 600 16px var(--f-data); white-space: nowrap; }
+.temps .sun { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .temps .lo { color: var(--cold); }
 .temps .hi { color: var(--warm); }
 .temps .sep { color: var(--muted); font-weight: 400; }
@@ -202,7 +204,8 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
   .now { grid-template-columns: minmax(0, 1fr); }
   .cam { order: -1; }
   .day { grid-template-columns: 74px 28px minmax(0, 1fr) 76px; grid-template-areas: "when ic cond temps" "rain rain agree agree"; row-gap: 6px; }
-  .day .temps { grid-area: temps; justify-content: flex-end; font-size: 15px; }
+  .day .temps { grid-area: temps; justify-items: end; }
+  .day .temps .tv { font-size: 15px; }
   .day .when { grid-area: when; } .day svg.ic { grid-area: ic; } .day .cond { grid-area: cond; }
   .day .rain { grid-area: rain; } .day .agree { grid-area: agree; align-self: end; justify-self: end; }
 }
@@ -250,7 +253,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2>Próximos 10 dias: consenso</h2>
-  <p class="sub">Mínima e máxima: mediana de todas as fontes. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não.</p>
+  <p class="sub">Mínima e máxima: mediana de todas as fontes. Horas de sol: mediana dos modelos que as calculam. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não.</p>
   <div class="days" id="days"></div>
 </section>
 
@@ -428,7 +431,7 @@ const icon = (cat, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 32 32" aria-
 async function loadOpenMeteoModels() {
   const q = new URLSearchParams({
     latitude: LOC.lat, longitude: LOC.lon, timezone: LOC.tz, forecast_days: DAYS,
-    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code',
+    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code,sunshine_duration',
     hourly: 'temperature_2m,precipitation',
     models: OM_MODELS.map((m) => m.id).join(','),
   });
@@ -439,7 +442,9 @@ async function loadOpenMeteoModels() {
       const max = d.daily[`temperature_2m_max_${m.id}`]?.[i];
       if (max == null) return;
       const info = wmoInfo(d.daily[`weather_code_${m.id}`]?.[i]);
-      src.days[date] = { max, min: d.daily[`temperature_2m_min_${m.id}`]?.[i], pr: d.daily[`precipitation_sum_${m.id}`]?.[i], cat: info.cat, text: info.text };
+      // Sunshine in hours; ECMWF AIFS returns a fixed placeholder (6 h every day), so it is left out
+      const sunS = m.id === 'ecmwf_aifs025_single' ? null : d.daily[`sunshine_duration_${m.id}`]?.[i];
+      src.days[date] = { max, min: d.daily[`temperature_2m_min_${m.id}`]?.[i], pr: d.daily[`precipitation_sum_${m.id}`]?.[i], cat: info.cat, text: info.text, sun: sunS == null ? null : sunS / 3600 };
     });
     d.hourly.time.forEach((t, i) => {
       const v = d.hourly[`temperature_2m_${m.id}`]?.[i];
@@ -930,6 +935,9 @@ function consensus(sources, dates) {
       const wetish = (cats.drizzle || 0) + (cats.rain || 0) + showers + storms;
       sky[2][1] += wetish; // a wet label with under 1 mm reads as a cloudy day
       cat = sky.sort((a, b) => b[1] - a[1])[0][0];
+      // The models' forecast sunshine says more about a dry day's sky than their icon votes (~13 h of daylight)
+      const sun = median(vals.map((v) => v.sun));
+      if (sun != null && cat !== 'fog') cat = sun >= 10 ? 'sun' : sun >= 5 ? 'partly' : 'cloud';
       text = { sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }[cat];
       if (pr != null && pr >= 0.2) text += ', garoa possível';
     }
@@ -937,6 +945,7 @@ function consensus(sources, dates) {
       date, n: vals.length, cat, text,
       max: tmax, min: tmin, maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
       pr, prHi: maxOf(prs), wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
+      sun: median(vals.map((v) => v.sun)), sunN: vals.filter((v) => v.sun != null).length,
     };
   });
 }
@@ -958,7 +967,10 @@ function renderDays(cons, ens) {
       <div class="when"><b>${wd}</b><span class="num">${dm}</span></div>
       ${icon(c.cat)}
       <div class="cond">${esc(c.text)}<small>${c.n} fontes</small></div>
-      <div class="temps" title="Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
+      <div class="temps">
+        <div class="tv" title="Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
+        ${c.sun != null ? `<div class="sun" title="Mediana de ${c.sunN} modelos">${fmt(c.sun)} h de sol</div>` : ''}
+      </div>
       <div class="rain"><span class="mm">${fmt(c.pr, 1)} mm</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
       <div class="agree">${conf}</div>
     </div>`;

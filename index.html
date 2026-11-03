@@ -664,8 +664,19 @@ function renderOutlook() {
     if (k >= 0) ev.push(['média', `Chuva deve parar por volta das ${hr[k].h}`]);
   }
   const hi = hr.reduce((a, b) => (b.t > a.t ? b : a)), lo = hr.reduce((a, b) => (b.t < a.t ? b : a));
-  if (hi.t - tNow >= 4) ev.push(['média', `Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}`]);
-  if (tNow - lo.t >= 4) ev.push(['média', `Temperatura cai para ${fmt(lo.t)}° por volta das ${lo.h}`]);
+  // Warming that peaks between 9h and 17h and cooling towards the evening or night are the normal daily cycle:
+  // only a swing against that cycle (e.g. a cold front cooling the afternoon) or of 8 °C or more is significant
+  const hourOf = (x) => +x.key.slice(11, 13);
+  if (hi.t - tNow >= 4) {
+    const odd = hi.t - tNow >= 8 || hourOf(hi) < 9 || hourOf(hi) > 17;
+    if (odd) ev.push(['média', `Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}, fora do normal para o horário`]);
+    else notes.push(`Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}`);
+  }
+  if (tNow - lo.t >= 4) {
+    const odd = tNow - lo.t >= 8 || (hourOf(lo) >= 9 && hourOf(lo) <= 15);
+    if (odd) ev.push(['média', `Temperatura cai para ${fmt(lo.t)}° por volta das ${lo.h}, fora do normal para o horário`]);
+    else notes.push(`Temperatura cai para ${fmt(lo.t)}° até as ${lo.h}, queda normal do fim do dia`);
+  }
   // Gusts, fog and sky come from the best-match model alone, so they are notes unless the gusts are severe
   const g = hr.reduce((a, b) => ((b.gust ?? 0) > (a.gust ?? 0) ? b : a));
   if ((g.gust ?? 0) >= 70) ev.push(['alta', `Rajadas fortes, de até ${fmt(g.gust)} km/h, por volta das ${g.h}`]);

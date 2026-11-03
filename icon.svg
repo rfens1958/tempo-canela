@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Tempo em Canela: an araucária (the Serra Gaúcha's tree) with the sun behind it, on the page's green -->
+  <rect width="64" height="64" rx="14" fill="#2d6a55"/>
+  <circle cx="45" cy="15" r="9.5" fill="#f2c14e"/>
+  <g fill="#ffffff">
+    <rect x="30.3" y="30" width="3.4" height="26" rx="1.4"/>
+    <!-- flat, tufted crown tapering down to the trunk -->
+    <path d="M5 21 Q8 15 12 19 Q16 13 21 17.5 Q25 12 29.5 16.5 Q32 11 34.5 16.5 Q39 12 43 17.5 Q48 13 52 19 Q56 15 59 21 Q53 31 37 35 L27 35 Q11 31 5 21 Z"/>
+  </g>
+  <!-- branch tiers -->
+  <g fill="none" stroke="#2d6a55" stroke-width="1.6" stroke-linecap="round">
+    <path d="M11 24 Q32 31 53 24"/>
+    <path d="M18 29.5 Q32 34 46 29.5"/>
+  </g>
+</svg>

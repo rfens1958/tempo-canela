@@ -74,6 +74,11 @@ section { min-width: 0; }
 .ol-events li.alta { color: var(--warm); font-weight: 600; }
 .ol-events li.nota { color: var(--muted); list-style: circle; }
 .ol-calm { margin: 0; font-size: 14px; }
+.ol-nowcast { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; display: grid; gap: 4px; font-size: 14px; }
+.ol-nowcast p { margin: 0; }
+.ol-nowcast .when { color: var(--muted); font-weight: 400; font-size: 12.5px; }
+.ol-nowcast .detail { font-size: 12.5px; color: var(--muted); }
+.ol-nowcast .detail a { margin-left: 6px; white-space: nowrap; }
 .ol-strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
 .ol-h { flex: none; width: 54px; display: grid; justify-items: center; gap: 2px; padding: 6px 0; border-radius: 8px; background: var(--surface-2); font-size: 12px; }
 .ol-h.wet { background: var(--rain-soft); }
@@ -637,6 +642,20 @@ function renderOutlook() {
     camNote = 'A câmera mostra chuva que os modelos não previam: chuva considerada provável nas próximas 2 horas.';
   }
 
+  // Radar + satellite nowcast (same hourly analysis as the camera): observation-based, so it may raise or
+  // lower the next 3 hours on its own, without needing the models to agree
+  const nc = cam && cam.rain_next_3h ? cam : null;
+  let radarStart = null;
+  if (nc && ['provável', 'muito provável'].includes(nc.rain_next_3h) && nc.rain_eta_hours >= 0) {
+    const floor = nc.rain_next_3h === 'muito provável' ? 80 : 60;
+    hr.slice(0, 3).forEach((x, i) => {
+      if (i + 1 >= nc.rain_eta_hours && x.chance < floor) { x.chance = floor; x.adj = true; }
+    });
+    radarStart = hr.slice(0, 3).find((x, i) => i + 1 >= nc.rain_eta_hours) || null;
+  } else if (nc && nc.rain_next_3h === 'improvável') {
+    hr.slice(0, 2).forEach((x) => { if (x.chance > 20) { x.chance = 20; x.adj = true; } });
+  }
+
   const majority = (x) => x.n > 0 && x.wet / x.n >= 0.5;
   // A camera-adjusted hour follows its adjusted chance; any other hour also needs most models to agree
   const wetHour = (x) => x.chance >= 50 && (x.adj || majority(x));
@@ -654,7 +673,8 @@ function renderOutlook() {
   else if (storm) notes.push(`Trovoada isolada possível por volta das ${storm.h}, prevista por um só modelo`);
   if (!nowWet) {
     const r = hr.find(wetHour);
-    if (r) ev.push(['alta', `Chuva deve começar por volta das ${r.h} (${agree(r)})`]);
+    if (radarStart && wetHour(radarStart)) ev.push(['alta', `Radar e satélite: chuva deve chegar por volta das ${radarStart.h}`]);
+    else if (r) ev.push(['alta', `Chuva deve começar por volta das ${r.h} (${agree(r)})`]);
     else {
       const top = hr.reduce((a, b) => (b.chance > a.chance ? b : a));
       if (top.chance >= 30 || top.wet >= 3) notes.push(`Possibilidade de chuva por volta das ${top.h} (${agree(top)}), sem acordo da maioria dos modelos`);
@@ -720,16 +740,25 @@ function renderOutlook() {
   const source = nEns
     ? `Chance de chuva: parte dos ${nEns} cenários dos ensembles ECMWF e GFS com chuva em cada hora`
     : `Chance de chuva: parte dos ${models.length} modelos com chuva em cada hora`;
+  const nowcast = nc ? `
+    <div class="ol-nowcast">
+      <p><b>Radar e satélite</b> <span class="when">(radar ${esc(nc.radar_time)})</span>: ${esc(nc.nowcast_summary)}</p>
+      <p class="detail">${esc(nc.radar_summary)} ${esc(nc.satellite_summary)}
+        <a href="https://radar-poa-13561874921.us-east1.run.app/" target="_blank" rel="noopener">Radar ↗</a>
+        <a href="https://www.star.nesdis.noaa.gov/goes/sector.php?sat=G19&amp;sector=ssa" target="_blank" rel="noopener">Satélite ↗</a></p>
+    </div>` : '';
+  const adjNote = hr.some((x) => x.adj) ? ` (*) Horas ajustadas pela observação: ${camNote || 'radar e satélite.'}` : '';
   box.innerHTML = `
     <div class="ol-head">${head}</div>
+    ${nowcast}
     ${body}
     <div class="ol-strip">${strip}</div>
-    <div class="ol-note">${source}; temperatura: mediana dos ${models.length} modelos.${camNote ? ` ${camNote} (*)` : ''}</div>`;
+    <div class="ol-note">${source}; temperatura: mediana dos ${models.length} modelos.${adjNote}</div>`;
 }
 
 // ---------- rendering ----------
 const STATUS = [
-  ['om', 'Open-Meteo · 10 modelos'], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'], ['cam', 'Câmera Mundo a Vapor'],
+  ['om', 'Open-Meteo · 10 modelos'], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'], ['cam', 'Câmera, radar e satélite'],
 ];
 function renderStatus(st) {
   $('status').innerHTML = STATUS.map(([k, label]) => {

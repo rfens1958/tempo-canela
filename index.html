@@ -105,7 +105,7 @@ section { min-width: 0; }
 
 /* Consenso */
 .days { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.day { display: grid; grid-template-columns: 92px 34px minmax(110px, 1fr) minmax(0, 2.4fr) 112px 92px; gap: 12px; align-items: center;
+.day { display: grid; grid-template-columns: 92px 34px minmax(110px, 1fr) 96px 130px 150px; gap: 12px; align-items: center;
   padding: 10px 16px; border-bottom: 1px solid var(--line); }
 .day:last-child { border-bottom: 0; }
 .day .when b { display: block; font-weight: 700; }
@@ -113,12 +113,11 @@ section { min-width: 0; }
 .day svg.ic { width: 30px; height: 30px; color: var(--accent); }
 .day .cond { font-size: 13.5px; }
 .day .cond small { display: block; color: var(--muted); font-size: 12px; }
-.bar { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 8px; align-items: center; }
-.bar .lo { color: var(--cold); text-align: right; font: 600 15px var(--f-data); }
-.bar .hi { color: var(--warm); font: 600 15px var(--f-data); }
-.track { position: relative; height: 10px; border-radius: 5px; background: var(--surface-2); }
-.track .spread { position: absolute; top: 3px; height: 4px; border-radius: 2px; background: var(--line); }
-.track .core { position: absolute; top: 0; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--cold), var(--warm)); }
+.temps { display: flex; align-items: baseline; gap: 4px; font: 600 16px var(--f-data); white-space: nowrap; }
+.temps .lo { color: var(--cold); }
+.temps .hi { color: var(--warm); }
+.temps .sep { color: var(--muted); font-weight: 400; }
+.agree .pill { white-space: nowrap; }
 .rain { display: grid; gap: 3px; font-size: 13px; }
 .rain .mm { font: 600 14px var(--f-data); color: var(--rain); }
 .rain .pbar { height: 5px; border-radius: 3px; background: var(--rain-soft); overflow: hidden; }
@@ -189,11 +188,12 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 @media (max-width: 820px) {
   .now { grid-template-columns: minmax(0, 1fr); }
   .cam { order: -1; }
-  .day { grid-template-columns: 78px 28px minmax(0, 1fr) 96px; grid-template-areas: "when ic cond rain" "bar bar bar agree"; row-gap: 6px; }
+  .day { grid-template-columns: 74px 28px minmax(0, 1fr) 76px; grid-template-areas: "when ic cond temps" "rain rain agree agree"; row-gap: 6px; }
+  .day .temps { grid-area: temps; justify-content: flex-end; font-size: 15px; }
   .day .when { grid-area: when; } .day svg.ic { grid-area: ic; } .day .cond { grid-area: cond; }
-  .day .bar { grid-area: bar; } .day .rain { grid-area: rain; } .day .agree { grid-area: agree; }
+  .day .rain { grid-area: rain; } .day .agree { grid-area: agree; align-self: end; justify-self: end; }
 }
-@media (prefers-reduced-motion: no-preference) { .track .core, .rain .pbar i { transition: all .4s ease; } }
+@media (prefers-reduced-motion: no-preference) { .rain .pbar i { transition: all .4s ease; } }
 </style>
 </head>
 <body>
@@ -237,7 +237,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2>Próximos 10 dias: consenso</h2>
-  <p class="sub">Mediana de todas as fontes. A barra colorida vai da mínima à máxima medianas; o traço cinza mostra a dispersão entre fontes. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais).</p>
+  <p class="sub">Mínima e máxima: mediana de todas as fontes. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não.</p>
   <div class="days" id="days"></div>
 </section>
 
@@ -833,10 +833,8 @@ function consensus(sources, dates) {
       text = { sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }[cat];
       if (pr != null && pr >= 0.2) text += ', garoa possível';
     }
-    const q = (arr, p) => { const a = arr.filter((x) => x != null).sort((x, y) => x - y); if (a.length < 3) return null; const i = (a.length - 1) * p, lo = Math.floor(i); return a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo); };
-    const iqr = q(maxs, .75) != null ? q(maxs, .75) - q(maxs, .25) : null;
     return {
-      date, n: vals.length, cat, text, iqr,
+      date, n: vals.length, cat, text,
       max: median(maxs), min: median(mins), maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
       pr, prHi: maxOf(prs), wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
     };
@@ -844,25 +842,23 @@ function consensus(sources, dates) {
 }
 
 function renderDays(cons, ens) {
-  const lo = Math.floor(minOf(cons.map((c) => c.minLo)) ?? 0) - 1, hi = Math.ceil(maxOf(cons.map((c) => c.maxHi)) ?? 30) + 1;
-  const pos = (v) => ((v - lo) / (hi - lo) * 100).toFixed(1) + '%';
   $('days').innerHTML = cons.map((c, i) => {
     const { wd, dm } = dayLabel(c.date, i);
-    // Agreement = spread of the middle half of the sources' maxima (ignores a single outlier)
-    const conf = c.iqr == null ? '' : c.iqr <= 2 ? '<span class="pill high">acordo alto</span>' : c.iqr <= 4 ? '<span class="pill mid">acordo médio</span>' : '<span class="pill low">incerto</span>';
     const e = ens[c.date];
     const prob = e && e.total ? Math.round(e.wet / e.total * 100) : null;
     const rainTxt = prob != null ? `${prob}% de chance` : `${c.wetSources} de ${c.prN} fontes`;
     const pct = prob != null ? prob : (c.prN ? Math.round(c.wetSources / c.prN * 100) : 0);
+    // Rain agreement: how lopsided the wet/dry split is (ensemble scenarios, or sources without them)
+    const split = prob != null || c.prN ? Math.max(pct, 100 - pct) : null;
+    const conf = split == null ? ''
+      : split >= 80 ? '<span class="pill high">chuva: acordo alto</span>'
+      : split >= 65 ? '<span class="pill mid">chuva: acordo médio</span>'
+      : '<span class="pill low">chuva: incerta</span>';
     return `<div class="day">
       <div class="when"><b>${wd}</b><span class="num">${dm}</span></div>
       ${icon(c.cat)}
       <div class="cond">${esc(c.text)}<small>${c.n} fontes</small></div>
-      <div class="bar"><span class="lo">${fmt(c.min)}°</span>
-        <div class="track" title="Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°">
-          <span class="spread" style="left:${pos(c.minLo)};width:calc(${pos(c.maxHi)} - ${pos(c.minLo)})"></span>
-          <span class="core" style="left:${pos(c.min)};width:calc(${pos(c.max)} - ${pos(c.min)})"></span>
-        </div><span class="hi">${fmt(c.max)}°</span></div>
+      <div class="temps" title="Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
       <div class="rain"><span class="mm">${fmt(c.pr, 1)} mm</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
       <div class="agree">${conf}</div>
     </div>`;

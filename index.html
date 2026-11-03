@@ -215,11 +215,11 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
   <div class="now">
     <div class="now-main" id="now-main"></div>
     <figure class="cam" id="cam">
-      <a href="https://camerasdaserra.com.br/cameras/143" target="_blank" rel="noopener" title="Abrir a câmera ao vivo">
-        <img id="cam-img" alt="Foto mais recente da câmera da Praça João Corrêa, em Canela" width="1920" height="1080">
+      <a href="https://camerasdaserra.com.br/cameras/130" target="_blank" rel="noopener" title="Abrir a câmera ao vivo">
+        <img id="cam-img" alt="Foto mais recente da câmera do Parque Mundo a Vapor, em Canela" width="1920" height="1080">
       </a>
       <figcaption>
-        <div class="cam-head"><span class="eyebrow">Câmera · Praça João Corrêa</span><a href="https://camerasdaserra.com.br/cameras/143" target="_blank" rel="noopener">Ao vivo ↗</a></div>
+        <div class="cam-head"><span class="eyebrow">Câmera · Parque Mundo a Vapor</span><a href="https://camerasdaserra.com.br/cameras/130" target="_blank" rel="noopener">Ao vivo ↗</a></div>
         <div class="cam-time" id="cam-time"></div>
       </figcaption>
     </figure>
@@ -245,7 +245,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2>Próximas 72 horas</h2>
-  <p class="sub">Temperatura hora a hora de cada modelo (linhas finas) e mediana (linha grossa). Abaixo, chuva por hora: mediana e máximo entre modelos.</p>
+  <p class="sub">Temperatura hora a hora de cada modelo (linhas finas) e mediana (linha grossa). Abaixo, chuva por hora: mediana dos modelos (linha) e máximo entre eles (barras).</p>
   <div class="charts">
     <div class="chartbox"><h3>Temperatura (°C)</h3><div class="cv"><canvas id="c-temp"></canvas></div></div>
     <div class="chartbox"><h3>Chuva (mm/h)</h3><div class="cv short"><canvas id="c-rain"></canvas></div></div>
@@ -538,7 +538,7 @@ function textToCat(t) {
 // ---------- câmera ----------
 // Photo and assessment both come from our Cloudflare Worker (avaliador-camera/), which keeps the
 // last evaluated photo and renews it at most once an hour. The live camera image is only a fallback.
-const CAM_IMG = 'https://files.rbt.psi.br/images/camerasdaserra/snapshots/6ac50858030d8003e45e1f7f/thumbnail.jpg';
+const CAM_IMG = 'https://files.rbt.psi.br/images/camerasdaserra/snapshots/6a875242028a1003e435c252/thumbnail.jpg';
 const CAM_WORKER = 'https://tempo-canela-camera.tempo-canela-camera.workers.dev/';
 
 let lastCam = null;
@@ -588,7 +588,7 @@ function applyCameraToNow() {
   $('now-icon').innerHTML = icon(c.category === 'night' ? 'cloud' : c.category, '');
   $('now-vis').innerHTML = `Visibilidade <b>${esc(c.visibility)}</b>`;
   $('now-vis').hidden = false;
-  $('now-src').textContent = `Condição observada na câmera da praça às ${camHm(c.image_time)}; números do Open-Meteo (modelo previa: ${$('now-cond').dataset.model}).`;
+  $('now-src').textContent = `Condição observada na câmera do Mundo a Vapor às ${camHm(c.image_time)}; números do Open-Meteo (modelo previa: ${$('now-cond').dataset.model}).`;
 }
 
 // ---------- próximas horas ----------
@@ -729,7 +729,7 @@ function renderOutlook() {
 
 // ---------- rendering ----------
 const STATUS = [
-  ['om', 'Open-Meteo · 10 modelos'], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'], ['cam', 'Câmera da praça'],
+  ['om', 'Open-Meteo · 10 modelos'], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'], ['cam', 'Câmera Mundo a Vapor'],
 ];
 function renderStatus(st) {
   $('status').innerHTML = STATUS.map(([k, label]) => {
@@ -883,7 +883,7 @@ function renderCharts(sources) {
     type: 'bar',
     data: { labels, datasets: [
       { label: 'Máximo entre modelos', data: pMax, backgroundColor: col('--rain-soft'), grouped: false, order: 2 },
-      { label: 'Mediana', data: pMed, backgroundColor: col('--rain'), grouped: false, order: 1 },
+      { type: 'line', label: 'Mediana', data: pMed, borderColor: col('--rain'), backgroundColor: col('--rain'), borderWidth: 2.5, pointRadius: 0, tension: 0.3, order: 1 },
     ] },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
       plugins: { legend: { position: 'bottom', labels: { color: col('--muted'), boxWidth: 12, font: { size: 11 } } },

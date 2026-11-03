@@ -1,4 +1,4 @@
-// Cloudflare Worker: avalia a foto da câmera da Praça João Corrêa (Canela) com o Claude
+// Cloudflare Worker: avalia a foto da câmera do Parque Mundo a Vapor (Canela) com o Claude
 // para a página "Tempo em Canela".
 //   GET /      -> avaliação (JSON)
 //   GET /foto  -> a foto que foi avaliada (JPEG)
@@ -6,7 +6,11 @@
 // renovação anterior, por mais vezes que a página seja aberta.
 import Anthropic from "@anthropic-ai/sdk";
 
-const CAM_URL = "https://files.rbt.psi.br/images/camerasdaserra/snapshots/6ac50858030d8003e45e1f7f/thumbnail.jpg";
+// Câmera 130 de camerasdaserra.com.br; as chaves do KV levam o número, para outra câmera começar do zero
+const CAM_ID = "130";
+const CAM_NAME = "Parque Mundo a Vapor, Canela";
+const CAM_URL = "https://files.rbt.psi.br/images/camerasdaserra/snapshots/6a875242028a1003e435c252/thumbnail.jpg";
+const KEY_LAST = `last-${CAM_ID}`, KEY_PHOTO = `photo-${CAM_ID}`;
 const RENEW_MS = 60 * 60 * 1000;
 const ALLOWED_ORIGINS = ["https://rfens1958.github.io", "null"]; // "null" = página aberta como ficheiro local
 
@@ -27,9 +31,9 @@ const SCHEMA = {
   additionalProperties: false,
 };
 
-const PROMPT = `Esta é a foto mais recente de uma câmera pública na Praça João Corrêa, no centro de Canela (Serra Gaúcha, RS, 837 m de altitude). O carimbo no topo da imagem mostra a data e a hora local.
+const PROMPT = `Esta é a foto mais recente de uma câmera pública no Parque Mundo a Vapor, em Canela (Serra Gaúcha, RS, cerca de 830 m de altitude). Ela mostra a roda-gigante, uma avenida com carros e uma vista ampla do céu e dos morros ao fundo. O carimbo no topo da imagem mostra a data e a hora local.
 
-Avalie o tempo que se vê AGORA na foto: céu, nevoeiro ou neblina (comuns na região), visibilidade dos morros e prédios ao fundo, se está chovendo (pingos, guarda-chuvas abertos, gotas na lente) e o estado do chão (seco, úmido, molhado, poças). Distinga chão molhado de chuva caindo: chão molhado sozinho indica chuva recente, não necessariamente chuva agora. Se for noite, avalie o que as luzes permitem ver e baixe a confiança.
+Avalie o tempo que se vê AGORA na foto: céu e nuvens, nevoeiro ou neblina (comuns na região), visibilidade dos morros e prédios ao fundo, se está chovendo (pingos, gotas na lente, faróis e para-brisas, guarda-chuvas) e o estado do chão e do asfalto (seco, úmido, molhado, poças). Distinga chão molhado de chuva caindo: chão molhado sozinho indica chuva recente, não necessariamente chuva agora. Se for noite, avalie o que as luzes permitem ver e baixe a confiança.
 
 No resumo, escreva em português do Brasil, em uma ou duas frases curtas e concretas, sem mencionar a câmera nem a imagem. Para "category" escolha o ícone que melhor representa a condição atual ("night" só se estiver escuro).`;
 
@@ -60,14 +64,14 @@ export default {
     const path = new URL(request.url).pathname;
 
     if (path === "/foto") {
-      const photo = await env.CAMERA.get("photo", "arrayBuffer");
+      const photo = await env.CAMERA.get(KEY_PHOTO, "arrayBuffer");
       if (!photo) return new Response("Ainda não há foto avaliada.", { status: 404, headers: corsHeaders(request) });
       return new Response(photo, {
         headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=3600", ...corsHeaders(request) },
       });
     }
 
-    const last = await env.CAMERA.get("last", "json");
+    const last = await env.CAMERA.get(KEY_LAST, "json");
     if (last && Date.now() - Date.parse(last.renewed_at) < RENEW_MS) return json(last, 200, request, { "X-Cache": "HIT" });
 
     if (!env.ANTHROPIC_API_KEY) return json({ error: "Falta configurar a chave ANTHROPIC_API_KEY no Worker." }, 503, request);
@@ -79,7 +83,7 @@ export default {
     // The camera has not published a new photo: keep the previous assessment for another hour
     if (last && last.image_time === imageTime) {
       const kept = { ...last, renewed_at: new Date().toISOString() };
-      ctx.waitUntil(env.CAMERA.put("last", JSON.stringify(kept)));
+      ctx.waitUntil(env.CAMERA.put(KEY_LAST, JSON.stringify(kept)));
       return json(kept, 200, request, { "X-Cache": "SAME-PHOTO" });
     }
 
@@ -114,7 +118,7 @@ export default {
 
     const result = {
       ...JSON.parse(text),
-      camera: "Praça João Corrêa, Canela",
+      camera: CAM_NAME,
       image_url: CAM_URL,
       image_time: imageTime,
       analyzed_at: new Date().toISOString(),
@@ -122,8 +126,8 @@ export default {
       model: response.model,
     };
     // Photo first, so /foto never serves an older photo than the stored assessment describes
-    await env.CAMERA.put("photo", photo);
-    await env.CAMERA.put("last", JSON.stringify(result));
+    await env.CAMERA.put(KEY_PHOTO, photo);
+    await env.CAMERA.put(KEY_LAST, JSON.stringify(result));
     return json(result, 200, request, { "X-Cache": "MISS" });
   },
 };

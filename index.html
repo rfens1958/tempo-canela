@@ -11,7 +11,7 @@
 /* Layout: one column of stacked panels, summary (agora + consenso) before detail (tabela, gráfico, widgets, links) */
 :root {
   --bg: #eaefec; --surface: #ffffff; --surface-2: #f4f7f5; --ink: #17211d; --muted: #586861; --line: #d2dbd6;
-  --accent: #2d6a55; --warm: #c0532a; --cold: #2c64a3; --rain: #2a7bbb; --rain-soft: #d5e6f3; --off: #fbe3d6; --ok: #2d6a55; --bad: #b4362b;
+  --accent: #2d6a55; --warm: #c0532a; --cold: #2c64a3; --rain: #2a7bbb; --rain-soft: #d5e6f3; --off: #fbe3d6; --ok: #2d6a55; --bad: #b4362b; --sun: #a86a00;
   --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
   --f-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -19,11 +19,11 @@
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0f1513; --surface: #17201c; --surface-2: #1d2823; --ink: #e5ece8; --muted: #93a39b; --line: #2b3732;
-  --accent: #72c2a1; --warm: #f08a5d; --cold: #82b2ec; --rain: #6db5ef; --rain-soft: #1b3345; --off: #4a2a1c; --ok: #72c2a1; --bad: #ef7a6e;
+  --accent: #72c2a1; --warm: #f08a5d; --cold: #82b2ec; --rain: #6db5ef; --rain-soft: #1b3345; --off: #4a2a1c; --ok: #72c2a1; --bad: #ef7a6e; --sun: #f2c14e;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #0f1513; --surface: #17201c; --surface-2: #1d2823; --ink: #e5ece8; --muted: #93a39b; --line: #2b3732;
-  --accent: #72c2a1; --warm: #f08a5d; --cold: #82b2ec; --rain: #6db5ef; --rain-soft: #1b3345; --off: #4a2a1c; --ok: #72c2a1; --bad: #ef7a6e;
+  --accent: #72c2a1; --warm: #f08a5d; --cold: #82b2ec; --rain: #6db5ef; --rain-soft: #1b3345; --off: #4a2a1c; --ok: #72c2a1; --bad: #ef7a6e; --sun: #f2c14e;
   color-scheme: dark; }
 
 * { box-sizing: border-box; }
@@ -115,7 +115,7 @@ section { min-width: 0; }
 .day .cond small { display: block; color: var(--muted); font-size: 12px; }
 .temps { display: grid; gap: 2px; justify-items: start; }
 .temps .tv { display: flex; align-items: baseline; gap: 4px; font: 600 16px var(--f-data); white-space: nowrap; }
-.temps .sun { font: 500 13px var(--f-data); color: var(--muted); white-space: nowrap; }
+.temps .sun { font: 600 14px var(--f-data); color: var(--sun); white-space: nowrap; }
 .temps .lo { color: var(--cold); }
 .temps .hi { color: var(--warm); }
 .temps .sep { color: var(--muted); font-weight: 400; }

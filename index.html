@@ -1044,6 +1044,8 @@ function renderNow(cur, sources) {
             `Jetzt: Open-Meteo, bestes Modell für den Ort · Bewölkung ${fmt(cur.cloud_cover)} % · Luftdruck ${fmt(cur.pressure_msl)} hPa.`)}</p>
         </div>
       </details>`;
+    // On a computer screen there is room for the details; on a phone they stay collapsed
+    $('now-more').open = window.matchMedia('(min-width: 821px)').matches;
     lastCur = cur; lastNowSources = sources;
     applyCameraToNow();
     renderOutlook();

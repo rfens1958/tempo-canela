@@ -10,7 +10,7 @@ import { hourly, recordCamera } from "./verify.js";
 
 // Câmera 130 de camerasdaserra.com.br; as chaves do KV levam o número (e a versão da análise),
 // para outra câmera ou outro formato de resposta começar do zero
-const CAM_ID = "130-v2";
+const CAM_ID = "130-v3";
 const CAM_NAME = "Parque Mundo a Vapor, Canela";
 const CAM_URL = "https://files.rbt.psi.br/images/camerasdaserra/snapshots/6a875242028a1003e435c252/thumbnail.jpg";
 const KEY_LAST = `last-${CAM_ID}`, KEY_PHOTO = `photo-${CAM_ID}`;
@@ -41,9 +41,14 @@ const SCHEMA = {
     rain_eta_hours: { type: "number", description: "Horas a partir de agora até a chuva chegar a Canela; 0 se já chove; -1 se não deve chover nas próximas 3 horas." },
     trend: { type: "string", enum: ["melhora", "estável", "piora"] },
     nowcast_summary: { type: "string", description: "Uma frase em português do Brasil sobre o que esperar em Canela nas próximas 3 horas, combinando câmera, radar e satélite." },
+    // German versions for the page's German edition (an Austrian engineer on the Alpen Park works)
+    radar_summary_de: { type: "string", description: "radar_summary em alemão (padrão da Áustria)." },
+    satellite_summary_de: { type: "string", description: "satellite_summary em alemão (padrão da Áustria)." },
+    nowcast_summary_de: { type: "string", description: "nowcast_summary em alemão (padrão da Áustria)." },
   },
   required: ["summary", "category", "daylight", "sky", "precipitation", "ground", "visibility", "fog", "confidence",
-    "radar_time", "radar_summary", "satellite_summary", "rain_next_3h", "rain_eta_hours", "trend", "nowcast_summary"],
+    "radar_time", "radar_summary", "satellite_summary", "rain_next_3h", "rain_eta_hours", "trend", "nowcast_summary",
+    "radar_summary_de", "satellite_summary_de", "nowcast_summary_de"],
   additionalProperties: false,
 };
 
@@ -57,7 +62,7 @@ const PROMPT = (nowLocal) => `Agora são ${nowLocal} (hora local de Canela). Ten
 
 1) Pela CÂMERA, avalie o tempo que se vê AGORA: céu e nuvens, nevoeiro ou neblina (comuns na região), visibilidade dos morros e prédios ao fundo, se está chovendo (pingos, gotas na lente, faróis e para-brisas, guarda-chuvas) e o estado do chão e do asfalto (seco, úmido, molhado, poças). Distinga chão molhado de chuva caindo: chão molhado sozinho indica chuva recente, não necessariamente chuva agora. Se for noite, avalie o que as luzes permitem ver e baixe a confiança. No "summary", escreva em português do Brasil, em uma ou duas frases curtas e concretas, sem mencionar a câmera nem a imagem. Para "category" escolha o ícone que melhor representa a condição atual ("night" só se estiver escuro).
 
-2) Pelo RADAR e pelo SATÉLITE, faça uma previsão de curtíssimo prazo (próximas 3 horas) para Canela: há chuva perto, ela se aproxima ou se afasta, a que velocidade, e há nuvens organizadas a caminho? Seja conservador: só use "provável" ou "muito provável" se houver chuva no radar a uma distância e com um deslocamento compatíveis com chegar a Canela dentro de 3 horas, ou se já estiver chovendo. Sem ecos relevantes num raio de ~100 km e sem sistemas organizados no satélite, a chuva é "improvável". Escreva "radar_summary", "satellite_summary" e "nowcast_summary" em português do Brasil, em frases curtas e concretas, com distâncias e direções aproximadas.`;
+2) Pelo RADAR e pelo SATÉLITE, faça uma previsão de curtíssimo prazo (próximas 3 horas) para Canela: há chuva perto, ela se aproxima ou se afasta, a que velocidade, e há nuvens organizadas a caminho? Seja conservador: só use "provável" ou "muito provável" se houver chuva no radar a uma distância e com um deslocamento compatíveis com chegar a Canela dentro de 3 horas, ou se já estiver chovendo. Sem ecos relevantes num raio de ~100 km e sem sistemas organizados no satélite, a chuva é "improvável". Escreva "radar_summary", "satellite_summary" e "nowcast_summary" em português do Brasil, em frases curtas e concretas, com distâncias e direções aproximadas. Repita esses três textos em alemão (padrão da Áustria) em "radar_summary_de", "satellite_summary_de" e "nowcast_summary_de", com o mesmo conteúdo.`;
 
 function corsHeaders(request) {
   const origin = request.headers.get("Origin");

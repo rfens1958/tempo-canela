@@ -51,6 +51,8 @@ h1 { font: 800 clamp(34px, 6vw, 56px)/1 var(--f-display); font-stretch: 78%; mar
   padding: 8px 14px; border-radius: 6px; cursor: pointer; }
 .btn:disabled { opacity: .6; cursor: progress; }
 .updated { font-size: 13px; color: var(--muted); }
+.lang { font-size: 13px; font-weight: 600; padding: 7px 12px; border: 1px solid var(--line); border-radius: 6px; text-decoration: none; color: var(--accent); background: var(--surface); }
+.lang:hover { border-color: var(--accent); }
 
 h2 { font: 700 22px/1.2 var(--f-display); font-stretch: 85%; margin: 0 0 4px; text-wrap: balance; }
 .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 14px; max-width: 75ch; }
@@ -250,12 +252,13 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 <header class="top">
   <div>
     <div class="eyebrow">Serra Gaúcha · RS · 837 m</div>
-    <h1>Tempo em Canela</h1>
-    <div class="coords num">29,366° S · 50,816° O · fuso de Brasília</div>
+    <h1 data-de="Wetter in Canela">Tempo em Canela</h1>
+    <div class="coords num" data-de="29,366° S · 50,816° W · Brasília-Zeit (UTC−3)">29,366° S · 50,816° O · fuso de Brasília</div>
   </div>
   <div class="controls">
-    <span class="updated" id="updated">A carregar…</span>
-    <button class="btn" id="refresh" type="button">Atualizar</button>
+    <a class="lang" id="lang-link" href="?lang=de">Deutsch</a>
+    <span class="updated" id="updated" data-de="Wird geladen…">A carregar…</span>
+    <button class="btn" id="refresh" type="button" data-de="Aktualisieren">Atualizar</button>
   </div>
 </header>
 
@@ -264,102 +267,106 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 </section>
 
 <section>
-  <h2>Agora</h2>
+  <h2 data-de="Jetzt">Agora</h2>
   <div class="now">
     <div class="now-main" id="now-main"></div>
     <figure class="cam" id="cam">
-      <a href="https://camerasdaserra.com.br/cameras/130" target="_blank" rel="noopener" title="Abrir a câmera ao vivo">
-        <img id="cam-img" alt="Foto mais recente da câmera do Parque Mundo a Vapor, em Canela" width="1920" height="1080">
+      <a href="https://camerasdaserra.com.br/cameras/130" target="_blank" rel="noopener" title="Abrir a câmera ao vivo" data-de-title="Live-Kamera öffnen">
+        <img id="cam-img" alt="Foto mais recente da câmera do Parque Mundo a Vapor, em Canela" data-de-alt="Neuestes Foto der Kamera im Parque Mundo a Vapor, Canela" width="1920" height="1080">
       </a>
       <figcaption>
-        <div class="cam-head"><span class="eyebrow">Câmera · Parque Mundo a Vapor</span><a href="https://camerasdaserra.com.br/cameras/130" target="_blank" rel="noopener">Ao vivo ↗</a></div>
+        <div class="cam-head"><span class="eyebrow" data-de="Kamera · Parque Mundo a Vapor">Câmera · Parque Mundo a Vapor</span><a href="https://camerasdaserra.com.br/cameras/130" target="_blank" rel="noopener" data-de="Live ↗">Ao vivo ↗</a></div>
         <div class="cam-time" id="cam-time"></div>
       </figcaption>
     </figure>
     <details class="fold mini" id="fold-now">
-      <summary><h3>Agora segundo cada fonte</h3><span class="hint">Mostrar</span></summary>
+      <summary><h3 data-de="Jetzt laut jeder Quelle">Agora segundo cada fonte</h3><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
       <div class="now-list" id="now-list"></div>
     </details>
   </div>
 </section>
 
 <section>
-  <h2>Próximos 10 dias: consenso</h2>
-  <p class="sub">Mínima e máxima: mediana de todas as fontes. Horas de sol: mediana dos modelos que as calculam. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não.</p>
+  <h2 data-de="Nächste 10 Tage: Konsens">Próximos 10 dias: consenso</h2>
+  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Sonnenstunden: Median der Modelle, die sie berechnen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (Tage mit 1 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind.">Mínima e máxima: mediana de todas as fontes. Horas de sol: mediana dos modelos que as calculam. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não.</p>
   <div class="days" id="days"></div>
 </section>
 
 <details class="fold" id="fold-table">
-  <summary><h2>Comparação por fonte</h2><span class="hint">Mostrar</span></summary>
-  <p class="sub">Máxima / mínima em °C e chuva do dia em mm. Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada.</p>
+  <summary><h2 data-de="Vergleich nach Quelle">Comparação por fonte</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
+  <p class="sub" data-de="Höchst- / Tiefstwert in °C und Tagesniederschlag in mm. Jedes Modell rechnet unabhängig; weicht eines um 3 °C oder mehr vom Median ab, wird die Zelle hervorgehoben.">Máxima / mínima em °C e chuva do dia em mm. Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada.</p>
   <div class="tablebox"><table id="table"></table></div>
-  <div class="legend"><span>diverge 3 °C ou mais da mediana</span></div>
+  <div class="legend"><span data-de="weicht 3 °C oder mehr vom Median ab">diverge 3 °C ou mais da mediana</span></div>
 </details>
 
 <section>
-  <h2>Próximas 72 horas</h2>
-  <p class="sub">Temperatura hora a hora de cada modelo (linhas finas) e mediana (linha grossa). Abaixo, chuva por hora: mediana dos modelos (linha) e máximo entre eles (barras).</p>
+  <h2 data-de="Nächste 72 Stunden">Próximas 72 horas</h2>
+  <p class="sub" data-de="Stündliche Temperatur jedes Modells (dünne Linien) und Median (dicke Linie). Darunter der stündliche Niederschlag: Median der Modelle (Linie) und Maximum (Balken).">Temperatura hora a hora de cada modelo (linhas finas) e mediana (linha grossa). Abaixo, chuva por hora: mediana dos modelos (linha) e máximo entre eles (barras).</p>
   <div class="charts">
-    <div class="chartbox"><h3>Temperatura (°C)</h3><div class="cv"><canvas id="c-temp"></canvas></div></div>
-    <div class="chartbox"><h3>Chuva (mm/h)</h3><div class="cv short"><canvas id="c-rain"></canvas></div></div>
+    <div class="chartbox"><h3 data-de="Temperatur (°C)">Temperatura (°C)</h3><div class="cv"><canvas id="c-temp"></canvas></div></div>
+    <div class="chartbox"><h3 data-de="Niederschlag (mm/h)">Chuva (mm/h)</h3><div class="cv short"><canvas id="c-rain"></canvas></div></div>
   </div>
 </section>
 
 <details class="fold" id="fold-stats">
-  <summary><h2>Índice de acertos</h2><span class="hint">Mostrar</span></summary>
-  <p class="sub">A página confere-se sozinha. De hora a hora guarda o que os 10 modelos e os ensembles previam; no dia seguinte compara com o que aconteceu no aeroporto de Caxias do Sul (METAR, a 40 km de Canela) e com a câmera de Canela. Últimos 30 dias.</p>
+  <summary><h2 data-de="Trefferquote">Índice de acertos</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
+  <p class="sub" data-de="Die Seite überprüft sich selbst. Stündlich speichert sie, was die 10 Modelle und die Ensembles vorhersagten; am nächsten Tag vergleicht sie mit den Messungen am Flughafen Caxias do Sul (METAR, 40 km von Canela) und mit der Kamera in Canela. Letzte 30 Tage.">A página confere-se sozinha. De hora a hora guarda o que os 10 modelos e os ensembles previam; no dia seguinte compara com o que aconteceu no aeroporto de Caxias do Sul (METAR, a 40 km de Canela) e com a câmera de Canela. Últimos 30 dias.</p>
   <div id="stats" class="stats"></div>
 </details>
 
 <details class="fold" id="fold-widgets">
-  <summary><h2>Widgets oficiais</h2><span class="hint">Mostrar</span></summary>
-  <p class="sub">Vistas diretas dos próprios sites: Windy, Wetteronline, Meteoblue e Yr.</p>
+  <summary><h2 data-de="Offizielle Widgets">Widgets oficiais</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
+  <p class="sub" data-de="Direkte Ansichten der Anbieter: Windy, Wetteronline, Meteoblue und Yr.">Vistas diretas dos próprios sites: Windy, Wetteronline, Meteoblue e Yr.</p>
   <div class="widgets">
     <div class="widget wide">
-      <header><b>Windy</b><a href="https://www.windy.com/-29.366/-50.816?-29.366,-50.816,9" target="_blank" rel="noopener">Abrir no Windy ↗</a></header>
+      <header><b>Windy</b><a href="https://www.windy.com/-29.366/-50.816?-29.366,-50.816,9" target="_blank" rel="noopener" data-de="In Windy öffnen ↗">Abrir no Windy ↗</a></header>
       <iframe id="windy" title="Mapa Windy de Canela" height="480" loading="lazy"
         src="https://embed.windy.com/embed2.html?lat=-29.366&lon=-50.816&detailLat=-29.366&detailLon=-50.816&width=1100&height=480&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=true&calendar=now&pressure=true&type=map&location=coordinates&detail=true&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"></iframe>    </div>
     <div class="widget">
-      <header><b>Wetteronline</b><a href="https://www.climaeradar.com.br/previsao-tempo/canela/11567001" target="_blank" rel="noopener">Abrir ↗</a></header>
+      <header><b>Wetteronline</b><a href="https://www.climaeradar.com.br/previsao-tempo/canela/11567001" target="_blank" rel="noopener" data-de="Öffnen ↗" data-de-href="https://www.wetteronline.de/wetter/canela">Abrir ↗</a></header>
       <iframe title="Widget Wetteronline Canela" height="320" loading="lazy" style="max-width:320px"
-        src="https://api.wo-cloud.com/content/widget/?timeFormat=HH:mm&windUnit=kmh&systemOfMeasurement=metric&temperatureUnit=celsius&geoID=x8469&locationname=Canela&language=pt&region=BR"></iframe>
+        src="https://api.wo-cloud.com/content/widget/?timeFormat=HH:mm&windUnit=kmh&systemOfMeasurement=metric&temperatureUnit=celsius&geoID=x8469&locationname=Canela&language=pt&region=BR"
+        data-de-src="https://api.wo-cloud.com/content/widget/?timeFormat=HH:mm&windUnit=kmh&systemOfMeasurement=metric&temperatureUnit=celsius&geoID=x8469&locationname=Canela&language=de&region=DE"></iframe>
     </div>
     <div class="widget span2">
-      <header><b>Meteoblue</b><a href="https://www.meteoblue.com/pt/tempo/semana/canela_brasil_3467530" target="_blank" rel="noopener">Abrir ↗</a></header>
+      <header><b>Meteoblue</b><a href="https://www.meteoblue.com/pt/tempo/semana/canela_brasil_3467530" target="_blank" rel="noopener" data-de="Öffnen ↗" data-de-href="https://www.meteoblue.com/de/wetter/woche/canela_brasilien_3467530">Abrir ↗</a></header>
       <iframe title="Widget Meteoblue Canela" height="560" loading="lazy"
-        src="https://www.meteoblue.com/pt/tempo/widget/daily/canela_brasil_3467530?geoloc=fixed&days=7&tempunit=CELSIUS&windunit=KILOMETER_PER_HOUR&precipunit=MILLIMETER&coloured=coloured&pictoicon=1&maxtemperature=1&mintemperature=1&windspeed=1&windgust=1&winddirection=1&uv=0&humidity=0&precipitation=1&precipitationprobability=1&spot=1&pressure=0&layout=light"></iframe>
+        src="https://www.meteoblue.com/pt/tempo/widget/daily/canela_brasil_3467530?geoloc=fixed&days=7&tempunit=CELSIUS&windunit=KILOMETER_PER_HOUR&precipunit=MILLIMETER&coloured=coloured&pictoicon=1&maxtemperature=1&mintemperature=1&windspeed=1&windgust=1&winddirection=1&uv=0&humidity=0&precipitation=1&precipitationprobability=1&spot=1&pressure=0&layout=light"
+        data-de-src="https://www.meteoblue.com/de/wetter/widget/daily/canela_brasilien_3467530?geoloc=fixed&days=7&tempunit=CELSIUS&windunit=KILOMETER_PER_HOUR&precipunit=MILLIMETER&coloured=coloured&pictoicon=1&maxtemperature=1&mintemperature=1&windspeed=1&windgust=1&winddirection=1&uv=0&humidity=0&precipitation=1&precipitationprobability=1&spot=1&pressure=0&layout=light"></iframe>
     </div>
     <div class="widget wide">
-      <header><b>Yr (MET Norway) · meteograma 48 h</b><a href="https://www.yr.no/en/forecast/daily-table/2-3467530/Brazil/Rio%20Grande%20do%20Sul/Canela/Canela" target="_blank" rel="noopener">Abrir ↗</a></header>
-      <div class="yr"><img id="yr-img" alt="Meteograma do Yr para Canela" src="https://www.yr.no/en/content/2-3467530/meteogram.svg"></div>
+      <header><b data-de="Yr (MET Norway) · Meteogramm 48 h">Yr (MET Norway) · meteograma 48 h</b><a href="https://www.yr.no/en/forecast/daily-table/2-3467530/Brazil/Rio%20Grande%20do%20Sul/Canela/Canela" target="_blank" rel="noopener" data-de="Öffnen ↗">Abrir ↗</a></header>
+      <div class="yr"><img id="yr-img" alt="Meteograma do Yr para Canela" data-de-alt="Yr-Meteogramm für Canela" src="https://www.yr.no/en/content/2-3467530/meteogram.svg"></div>
     </div>
   </div>
 </details>
 
 <details class="fold" id="fold-links">
-  <summary><h2>Mais sites para Canela</h2><span class="hint">Mostrar</span></summary>
-  <p class="sub">Fontes que não permitem incorporar os dados; abrem em nova aba já na página de Canela.</p>
+  <summary><h2 data-de="Weitere Seiten für Canela">Mais sites para Canela</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
+  <p class="sub" data-de="Anbieter, die keine Einbindung erlauben; die Links öffnen direkt die Seite für Canela in einem neuen Tab.">Fontes que não permitem incorporar os dados; abrem em nova aba já na página de Canela.</p>
   <div class="links">
-    <a href="https://www.windy.com/-29.366/-50.816?-29.366,-50.816,9" target="_blank" rel="noopener"><b>Windy</b><span>Mapas, ECMWF, GFS, ICON</span></a>
-    <a href="https://www.climaeradar.com.br/previsao-tempo/canela/11567001" target="_blank" rel="noopener"><b>Wetteronline</b><span>Versão brasileira (Clima e Radar)</span></a>
-    <a href="https://www.meteoblue.com/pt/tempo/semana/canela_brasil_3467530" target="_blank" rel="noopener"><b>Meteoblue</b><span>Multimodelo, meteogramas</span></a>
+    <a href="https://www.windy.com/-29.366/-50.816?-29.366,-50.816,9" target="_blank" rel="noopener"><b>Windy</b><span data-de="Karten, ECMWF, GFS, ICON">Mapas, ECMWF, GFS, ICON</span></a>
+    <a href="https://www.climaeradar.com.br/previsao-tempo/canela/11567001" target="_blank" rel="noopener" data-de-href="https://www.wetteronline.de/wetter/canela"><b>Wetteronline</b><span data-de="Wetteronline.de">Versão brasileira (Clima e Radar)</span></a>
+    <a href="https://www.meteoblue.com/pt/tempo/semana/canela_brasil_3467530" target="_blank" rel="noopener" data-de-href="https://www.meteoblue.com/de/wetter/woche/canela_brasilien_3467530"><b>Meteoblue</b><span data-de="Multimodell, Meteogramme">Multimodelo, meteogramas</span></a>
     <a href="https://www.yr.no/en/forecast/daily-table/2-3467530/Brazil/Rio%20Grande%20do%20Sul/Canela/Canela" target="_blank" rel="noopener"><b>Yr</b><span>MET Norway</span></a>
-    <a href="https://www.climatempo.com.br/previsao-do-tempo/15-dias/cidade/2170/canela-rs" target="_blank" rel="noopener"><b>Climatempo</b><span>15 dias</span></a>
-    <a href="https://metsul.com/" target="_blank" rel="noopener"><b>MetSul</b><span>Meteorologia do RS</span></a>
-    <a href="https://previsao.inmet.gov.br/" target="_blank" rel="noopener"><b>INMET</b><span>Instituto Nacional de Meteorologia</span></a>
-    <a href="https://www.cptec.inpe.br/" target="_blank" rel="noopener"><b>CPTEC/INPE</b><span>Previsão oficial</span></a>
-    <a href="https://www.ventusky.com/?p=-29.37;-50.82;9&l=temperature-2m" target="_blank" rel="noopener"><b>Ventusky</b><span>Mapas animados</span></a>
-    <a href="https://weather.com/pt-BR/weather/tenday/l/-29.37,-50.82" target="_blank" rel="noopener"><b>The Weather Channel</b><span>10 dias</span></a>
-    <a href="https://www.accuweather.com/pt/search-locations?query=Canela%2C%20Rio%20Grande%20do%20Sul" target="_blank" rel="noopener"><b>AccuWeather</b><span>Pesquisa por Canela</span></a>
-    <a href="https://www.wetter.com/suche/?q=Canela" target="_blank" rel="noopener"><b>wetter.com</b><span>Pesquisa por Canela</span></a>
-    <a href="https://www.windguru.cz/map/?lat=-29.366&lon=-50.816&zoom=9" target="_blank" rel="noopener"><b>Windguru</b><span>Vento e rajadas</span></a>
-    <a href="https://www.ogimet.com/" target="_blank" rel="noopener"><b>Ogimet</b><span>Observações SYNOP</span></a>
-    <a href="https://open-meteo.com/en/docs?latitude=-29.3656&longitude=-50.8158" target="_blank" rel="noopener"><b>Open-Meteo</b><span>Dados brutos dos modelos</span></a>
-    <a href="https://wttr.in/Canela,RS?lang=pt" target="_blank" rel="noopener"><b>wttr.in</b><span>Resumo em texto</span></a>
+    <a href="https://www.climatempo.com.br/previsao-do-tempo/15-dias/cidade/2170/canela-rs" target="_blank" rel="noopener"><b>Climatempo</b><span data-de="15 Tage (portugiesisch)">15 dias</span></a>
+    <a href="https://metsul.com/" target="_blank" rel="noopener"><b>MetSul</b><span data-de="Wetterdienst von Rio Grande do Sul">Meteorologia do RS</span></a>
+    <a href="https://previsao.inmet.gov.br/" target="_blank" rel="noopener"><b>INMET</b><span data-de="Brasilianischer Wetterdienst">Instituto Nacional de Meteorologia</span></a>
+    <a href="https://www.cptec.inpe.br/" target="_blank" rel="noopener"><b>CPTEC/INPE</b><span data-de="Amtliche Vorhersage Brasiliens">Previsão oficial</span></a>
+    <a href="https://www.ventusky.com/?p=-29.37;-50.82;9&l=temperature-2m" target="_blank" rel="noopener"><b>Ventusky</b><span data-de="Animierte Karten">Mapas animados</span></a>
+    <a href="https://weather.com/pt-BR/weather/tenday/l/-29.37,-50.82" target="_blank" rel="noopener" data-de-href="https://weather.com/de-AT/wetter/10tage/l/-29.37,-50.82"><b>The Weather Channel</b><span data-de="10 Tage">10 dias</span></a>
+    <a href="https://www.accuweather.com/pt/search-locations?query=Canela%2C%20Rio%20Grande%20do%20Sul" target="_blank" rel="noopener" data-de-href="https://www.accuweather.com/de/search-locations?query=Canela%2C%20Rio%20Grande%20do%20Sul"><b>AccuWeather</b><span data-de="Suche nach Canela">Pesquisa por Canela</span></a>
+    <a href="https://www.wetter.com/suche/?q=Canela" target="_blank" rel="noopener"><b>wetter.com</b><span data-de="Suche nach Canela">Pesquisa por Canela</span></a>
+    <a href="https://www.windguru.cz/map/?lat=-29.366&lon=-50.816&zoom=9" target="_blank" rel="noopener"><b>Windguru</b><span data-de="Wind und Böen">Vento e rajadas</span></a>
+    <a href="https://www.ogimet.com/" target="_blank" rel="noopener"><b>Ogimet</b><span data-de="SYNOP-Beobachtungen">Observações SYNOP</span></a>
+    <a href="https://open-meteo.com/en/docs?latitude=-29.3656&longitude=-50.8158" target="_blank" rel="noopener"><b>Open-Meteo</b><span data-de="Rohdaten der Modelle">Dados brutos dos modelos</span></a>
+    <a href="https://wttr.in/Canela,RS?lang=pt" target="_blank" rel="noopener" data-de-href="https://wttr.in/Canela,RS?lang=de"><b>wttr.in</b><span data-de="Textübersicht">Resumo em texto</span></a>
   </div>
 </details>
 
-<footer>
+<footer data-de-html='Daten werden bei jedem Öffnen der Seite und danach alle 30 Minuten direkt von den Quellen geladen.
+  Modelle über &lt;a href="https://open-meteo.com/" target="_blank" rel="noopener"&gt;Open-Meteo&lt;/a&gt; (CC BY 4.0): ECMWF IFS und AIFS, NOAA GFS und AIGFS, DWD ICON, CMC GEM, JMA, Météo-France ARPEGE, UK Met Office und CMA GRAPES.
+  Außerdem &lt;a href="https://api.met.no/" target="_blank" rel="noopener"&gt;MET Norway&lt;/a&gt; (CC BY 4.0), &lt;a href="https://wttr.in/" target="_blank" rel="noopener"&gt;wttr.in&lt;/a&gt; (World Weather Online) und das öffentliche Widget von Wetteronline. Kamera: camerasdaserra.com.br; Radar: Climatempo; Satellit: GOES-19 (NOAA, via RealEarth/SSEC).'>
   Dados lidos diretamente das fontes cada vez que a página abre, e novamente a cada 30 minutos.
   Modelos via <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0): ECMWF IFS e AIFS, NOAA GFS e AIGFS, DWD ICON, CMC GEM, JMA, Météo-France ARPEGE, UK Met Office e CMA GRAPES.
   Também <a href="https://api.met.no/" target="_blank" rel="noopener">MET Norway</a> (CC BY 4.0), <a href="https://wttr.in/" target="_blank" rel="noopener">wttr.in</a> (World Weather Online) e o widget público do Wetteronline.
@@ -369,21 +376,49 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
+// ---------- idioma ----------
+// Portuguese by default; German with ?lang=de (or a German browser without ?lang). Every visible text is
+// written as T('português', 'Deutsch'); static HTML carries its German in data-de / data-de-html attributes.
+const LANG = (() => {
+  const q = new URLSearchParams(location.search).get('lang');
+  if (q) return q === 'de' ? 'de' : 'pt';
+  return (navigator.language || '').toLowerCase().startsWith('de') ? 'de' : 'pt';
+})();
+const DE = LANG === 'de';
+const T = (pt, de) => (DE ? de : pt);
+const LOCALE = T('pt-BR', 'de-AT');
+const hourLabel = (h) => T(`${h}h`, `${h} Uhr`); // an hour of the day, e.g. 15h / 15 Uhr
+
+function applyStaticLang() {
+  document.documentElement.lang = T('pt-BR', 'de');
+  const link = document.getElementById('lang-link');
+  link.textContent = T('Deutsch', 'Português');
+  link.href = T('?lang=de', '?lang=pt');
+  if (!DE) return;
+  document.title = 'Wetter in Canela';
+  document.querySelectorAll('[data-de]').forEach((el) => { el.textContent = el.dataset.de; });
+  document.querySelectorAll('[data-de-html]').forEach((el) => { el.innerHTML = el.dataset.deHtml; });
+  document.querySelectorAll('[data-de-title]').forEach((el) => { el.title = el.dataset.deTitle; });
+  document.querySelectorAll('[data-de-alt]').forEach((el) => { el.alt = el.dataset.deAlt; });
+  document.querySelectorAll('[data-de-src]').forEach((el) => { el.src = el.dataset.deSrc; });
+  document.querySelectorAll('[data-de-href]').forEach((el) => { el.href = el.dataset.deHref; });
+}
+
 const LOC = { lat: -29.3656, lon: -50.8158, alt: 837, tz: 'America/Sao_Paulo' };
 const DAYS = 10;
 const OM_MODELS = [
-  { id: 'ecmwf_ifs025', name: 'ECMWF IFS', org: 'Centro Europeu' },
-  { id: 'ecmwf_aifs025_single', name: 'ECMWF AIFS', org: 'Centro Europeu · IA' },
-  { id: 'gfs_seamless', name: 'GFS', org: 'NOAA, EUA' },
-  { id: 'ncep_aigfs025', name: 'AIGFS', org: 'NOAA, EUA · IA' },
-  { id: 'icon_seamless', name: 'ICON', org: 'DWD, Alemanha' },
-  { id: 'gem_seamless', name: 'GEM', org: 'CMC, Canadá' },
-  { id: 'jma_seamless', name: 'JMA GSM', org: 'Japão' },
+  { id: 'ecmwf_ifs025', name: 'ECMWF IFS', org: T('Centro Europeu', 'EZMW') },
+  { id: 'ecmwf_aifs025_single', name: 'ECMWF AIFS', org: T('Centro Europeu · IA', 'EZMW · KI') },
+  { id: 'gfs_seamless', name: 'GFS', org: T('NOAA, EUA', 'NOAA, USA') },
+  { id: 'ncep_aigfs025', name: 'AIGFS', org: T('NOAA, EUA · IA', 'NOAA, USA · KI') },
+  { id: 'icon_seamless', name: 'ICON', org: T('DWD, Alemanha', 'DWD, Deutschland') },
+  { id: 'gem_seamless', name: 'GEM', org: T('CMC, Canadá', 'CMC, Kanada') },
+  { id: 'jma_seamless', name: 'JMA GSM', org: T('Japão', 'Japan') },
   { id: 'meteofrance_seamless', name: 'ARPEGE', org: 'Météo-France' },
-  { id: 'ukmo_seamless', name: 'UKMO', org: 'Met Office, RU' },
+  { id: 'ukmo_seamless', name: 'UKMO', org: T('Met Office, RU', 'Met Office, UK') },
   { id: 'cma_grapes_global', name: 'GRAPES', org: 'CMA, China' },
 ];
-const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const WEEKDAYS = T(['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'], ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']);
 
 // ---------- utilities ----------
 const $ = (id) => document.getElementById(id);
@@ -398,7 +433,11 @@ const localHourKey = (d) => {
   return `${p.year}-${p.month}-${p.day}T${p.hour}:00`;
 };
 const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-const dayLabel = (iso, i) => { const d = new Date(iso + 'T12:00:00Z'); const wd = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : WEEKDAYS[d.getUTCDay()]; return { wd, dm: `${d.getUTCDate()}/${d.getUTCMonth() + 1}` }; };
+const dayLabel = (iso, i) => {
+  const d = new Date(iso + 'T12:00:00Z');
+  const wd = i === 0 ? T('Hoje', 'Heute') : i === 1 ? T('Amanhã', 'Morgen') : WEEKDAYS[d.getUTCDay()];
+  return { wd, dm: T(`${d.getUTCDate()}/${d.getUTCMonth() + 1}`, `${d.getUTCDate()}.${d.getUTCMonth() + 1}.`) };
+};
 
 async function fetchWithTimeout(url, ms = 20000, as = 'json') {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
@@ -413,36 +452,36 @@ async function fetchWithTimeout(url, ms = 20000, as = 'json') {
 // Category -> icon. Categories: sun, partly, cloud, fog, drizzle, rain, showers, storm, snow
 function wmoInfo(code) {
   if (code == null) return { cat: 'cloud', text: '–' };
-  if (code === 0) return { cat: 'sun', text: 'Céu limpo' };
-  if (code === 1) return { cat: 'sun', text: 'Predomínio de sol' };
-  if (code === 2) return { cat: 'partly', text: 'Parcialmente nublado' };
-  if (code === 3) return { cat: 'cloud', text: 'Nublado' };
-  if (code === 45 || code === 48) return { cat: 'fog', text: 'Nevoeiro' };
-  if (code >= 51 && code <= 57) return { cat: 'drizzle', text: 'Garoa' };
-  if (code === 61) return { cat: 'rain', text: 'Chuva fraca' };
-  if (code === 63) return { cat: 'rain', text: 'Chuva' };
-  if (code === 65) return { cat: 'rain', text: 'Chuva forte' };
-  if (code === 66 || code === 67) return { cat: 'rain', text: 'Chuva congelante' };
-  if (code >= 71 && code <= 77) return { cat: 'snow', text: 'Neve' };
-  if (code >= 80 && code <= 82) return { cat: 'showers', text: code === 82 ? 'Pancadas fortes' : 'Pancadas de chuva' };
-  if (code === 85 || code === 86) return { cat: 'snow', text: 'Pancadas de neve' };
-  if (code >= 95) return { cat: 'storm', text: code > 95 ? 'Trovoada com granizo' : 'Trovoada' };
+  if (code === 0) return { cat: 'sun', text: T('Céu limpo', 'Klarer Himmel') };
+  if (code === 1) return { cat: 'sun', text: T('Predomínio de sol', 'Überwiegend sonnig') };
+  if (code === 2) return { cat: 'partly', text: T('Parcialmente nublado', 'Teilweise bewölkt') };
+  if (code === 3) return { cat: 'cloud', text: T('Nublado', 'Bewölkt') };
+  if (code === 45 || code === 48) return { cat: 'fog', text: T('Nevoeiro', 'Nebel') };
+  if (code >= 51 && code <= 57) return { cat: 'drizzle', text: T('Garoa', 'Nieselregen') };
+  if (code === 61) return { cat: 'rain', text: T('Chuva fraca', 'Leichter Regen') };
+  if (code === 63) return { cat: 'rain', text: T('Chuva', 'Regen') };
+  if (code === 65) return { cat: 'rain', text: T('Chuva forte', 'Starker Regen') };
+  if (code === 66 || code === 67) return { cat: 'rain', text: T('Chuva congelante', 'Gefrierender Regen') };
+  if (code >= 71 && code <= 77) return { cat: 'snow', text: T('Neve', 'Schnee') };
+  if (code >= 80 && code <= 82) return { cat: 'showers', text: code === 82 ? T('Pancadas fortes', 'Starke Schauer') : T('Pancadas de chuva', 'Regenschauer') };
+  if (code === 85 || code === 86) return { cat: 'snow', text: T('Pancadas de neve', 'Schneeschauer') };
+  if (code >= 95) return { cat: 'storm', text: code > 95 ? T('Trovoada com granizo', 'Gewitter mit Hagel') : T('Trovoada', 'Gewitter') };
   return { cat: 'cloud', text: '–' };
 }
 function metnoInfo(sym) {
   if (!sym) return { cat: 'cloud', text: '–' };
   const s = sym.replace(/_(day|night|polartwilight)$/, '');
   const has = (k) => s.includes(k);
-  if (has('thunder')) return { cat: 'storm', text: 'Trovoada' };
-  if (has('snow')) return { cat: 'snow', text: 'Neve' };
-  if (has('sleet')) return { cat: 'rain', text: 'Chuva com neve' };
-  if (has('showers')) return { cat: 'showers', text: has('heavy') ? 'Pancadas fortes' : has('light') ? 'Pancadas fracas' : 'Pancadas de chuva' };
-  if (has('rain')) return { cat: 'rain', text: has('heavy') ? 'Chuva forte' : has('light') ? 'Chuva fraca' : 'Chuva' };
-  if (s === 'fog') return { cat: 'fog', text: 'Nevoeiro' };
-  if (s === 'clearsky') return { cat: 'sun', text: 'Céu limpo' };
-  if (s === 'fair') return { cat: 'sun', text: 'Poucas nuvens' };
-  if (s === 'partlycloudy') return { cat: 'partly', text: 'Parcialmente nublado' };
-  if (s === 'cloudy') return { cat: 'cloud', text: 'Nublado' };
+  if (has('thunder')) return { cat: 'storm', text: T('Trovoada', 'Gewitter') };
+  if (has('snow')) return { cat: 'snow', text: T('Neve', 'Schnee') };
+  if (has('sleet')) return { cat: 'rain', text: T('Chuva com neve', 'Schneeregen') };
+  if (has('showers')) return { cat: 'showers', text: has('heavy') ? T('Pancadas fortes', 'Starke Schauer') : has('light') ? T('Pancadas fracas', 'Leichte Schauer') : T('Pancadas de chuva', 'Regenschauer') };
+  if (has('rain')) return { cat: 'rain', text: has('heavy') ? T('Chuva forte', 'Starker Regen') : has('light') ? T('Chuva fraca', 'Leichter Regen') : T('Chuva', 'Regen') };
+  if (s === 'fog') return { cat: 'fog', text: T('Nevoeiro', 'Nebel') };
+  if (s === 'clearsky') return { cat: 'sun', text: T('Céu limpo', 'Klarer Himmel') };
+  if (s === 'fair') return { cat: 'sun', text: T('Poucas nuvens', 'Leicht bewölkt') };
+  if (s === 'partlycloudy') return { cat: 'partly', text: T('Parcialmente nublado', 'Teilweise bewölkt') };
+  if (s === 'cloudy') return { cat: 'cloud', text: T('Nublado', 'Bewölkt') };
   return { cat: 'cloud', text: s };
 }
 const ICONS = {
@@ -532,7 +571,7 @@ async function loadEnsemble() {
 
 async function loadMetNo() {
   const d = await fetchWithTimeout(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LOC.lat}&lon=${LOC.lon}&altitude=${LOC.alt}`);
-  const src = { id: 'metno', name: 'MET Norway', org: 'Yr · Noruega', kind: 'site', days: {}, hourly: {} };
+  const src = { id: 'metno', name: 'MET Norway', org: T('Yr · Noruega', 'Yr · Norwegen'), kind: 'site', days: {}, hourly: {} };
   const syms = {};
   d.properties.timeseries.forEach((e) => {
     const when = new Date(e.time);
@@ -559,24 +598,24 @@ async function loadMetNo() {
 }
 
 async function loadWttr() {
-  const d = await fetchWithTimeout(`https://wttr.in/${LOC.lat},${LOC.lon}?format=j1&lang=pt`, 25000);
+  const d = await fetchWithTimeout(`https://wttr.in/${LOC.lat},${LOC.lon}?format=j1&lang=${LANG}`, 25000);
   const src = { id: 'wttr', name: 'wttr.in', org: 'World Weather Online', kind: 'site', days: {}, hourly: {} };
+  const langText = (o) => o?.[`lang_${LANG}`]?.[0]?.value || o?.weatherDesc?.[0]?.value || '';
   d.weather.forEach((w) => {
     const pr = w.hourly.reduce((s, h) => s + parseFloat(h.precipMM || 0), 0);
-    const mid = w.hourly[Math.min(4, w.hourly.length - 1)];
-    const text = mid?.lang_pt?.[0]?.value || mid?.weatherDesc?.[0]?.value || '';
+    const text = langText(w.hourly[Math.min(4, w.hourly.length - 1)]);
     src.days[w.date] = { max: +w.maxtempC, min: +w.mintempC, pr: Math.round(pr * 10) / 10, cat: textToCat(text), text };
   });
   const c = d.current_condition[0];
-  const text = c.lang_pt?.[0]?.value || c.weatherDesc?.[0]?.value || '';
+  const text = langText(c);
   src.now = { t: +c.temp_C, feels: +c.FeelsLikeC, hum: +c.humidity, wind: +c.windspeedKmph, text, cat: textToCat(text) };
   return src;
 }
 
 async function loadWetteronline() {
-  const html = await fetchWithTimeout('https://api.wo-cloud.com/content/widget/?timeFormat=HH:mm&windUnit=kmh&systemOfMeasurement=metric&temperatureUnit=celsius&geoID=x8469&locationname=Canela&language=pt&region=BR', 20000, 'text');
+  const html = await fetchWithTimeout(`https://api.wo-cloud.com/content/widget/?timeFormat=HH:mm&windUnit=kmh&systemOfMeasurement=metric&temperatureUnit=celsius&geoID=x8469&locationname=Canela&language=${T('pt&region=BR', 'de&region=DE')}`, 20000, 'text');
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const src = { id: 'wetteronline', name: 'Wetteronline', org: 'Alemanha', kind: 'site', days: {}, hourly: {} };
+  const src = { id: 'wetteronline', name: 'Wetteronline', org: T('Alemanha', 'Deutschland'), kind: 'site', days: {}, hourly: {} };
   const today = localDate(new Date());
   doc.querySelectorAll('.forecast').forEach((f, i) => {
     const max = parseFloat(f.querySelector('.temperature.max')?.textContent);
@@ -587,21 +626,21 @@ async function loadWetteronline() {
   const t = parseFloat(doc.querySelector('.temp')?.textContent);
   const wind = parseFloat(doc.querySelector('#wind-speed')?.textContent);
   if (!Number.isNaN(t)) src.now = { t, wind: Number.isNaN(wind) ? null : wind, text: '', cat: null };
-  if (!Object.keys(src.days).length) throw new Error('formato inesperado');
+  if (!Object.keys(src.days).length) throw new Error(T('formato inesperado', 'unerwartetes Format'));
   return src;
 }
 
 function textToCat(t) {
   t = (t || '').toLowerCase();
-  if (/trov|tempest|thunder/.test(t)) return 'storm';
-  if (/neve|snow/.test(t)) return 'snow';
-  if (/pancada|shower/.test(t)) return 'showers';
-  if (/garoa|chuvisc|drizzle/.test(t)) return 'drizzle';
-  if (/chuva|rain/.test(t)) return 'rain';
-  if (/névoa|nevoeiro|neblina|fog|mist/.test(t)) return 'fog';
-  if (/parcial|algumas nuvens|partly|poucas/.test(t)) return 'partly';
-  if (/nublado|encoberto|overcast|cloud/.test(t)) return 'cloud';
-  if (/sol|limpo|clear|sunny|ensolarado/.test(t)) return 'sun';
+  if (/trov|tempest|thunder|gewitter/.test(t)) return 'storm';
+  if (/neve|snow|schnee/.test(t)) return 'snow';
+  if (/pancada|shower|schauer/.test(t)) return 'showers';
+  if (/garoa|chuvisc|drizzle|niesel/.test(t)) return 'drizzle';
+  if (/chuva|rain|regen/.test(t)) return 'rain';
+  if (/névoa|nevoeiro|neblina|fog|mist|nebel|dunst/.test(t)) return 'fog';
+  if (/parcial|algumas nuvens|partly|poucas|teilweise|wolkig|heiter|leicht bewölkt/.test(t)) return 'partly';
+  if (/nublado|encoberto|overcast|cloud|bewölkt|bedeckt/.test(t)) return 'cloud';
+  if (/sol|limpo|clear|sunny|ensolarado|sonn|klar/.test(t)) return 'sun';
   return 'cloud';
 }
 
@@ -626,17 +665,24 @@ async function loadCamera() {
   } finally { clearTimeout(t); }
 }
 
-const camHm = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { timeZone: LOC.tz, hour: '2-digit', minute: '2-digit' });
+const camHm = (iso) => new Date(iso).toLocaleTimeString(LOCALE, { timeZone: LOC.tz, hour: '2-digit', minute: '2-digit' });
 const cap = (s) => s ? s[0].toUpperCase() + s.slice(1) : s;
+// The Worker's assessment uses fixed Portuguese values; this shows them in the page's language
+const CAM_DE = {
+  'sem chuva': 'kein Regen', garoa: 'Nieselregen', 'chuva fraca': 'leichter Regen', 'chuva moderada': 'mäßiger Regen', 'chuva forte': 'starker Regen', indeterminado: 'unbestimmt',
+  limpo: 'klar', 'poucas nuvens': 'leicht bewölkt', 'parcialmente nublado': 'teilweise bewölkt', nublado: 'bewölkt', encoberto: 'bedeckt', 'não visível': 'nicht sichtbar',
+  boa: 'gut', moderada: 'mäßig', reduzida: 'eingeschränkt', 'muito reduzida': 'stark eingeschränkt',
+};
+const camWord = (v) => (DE ? CAM_DE[v] || v : v);
 
 // Short condition line for the Open-Meteo card, built from what the photo shows
 function camCondition(c) {
   const wet = ['garoa', 'chuva fraca', 'chuva moderada', 'chuva forte'].includes(c.precipitation);
   const parts = [];
-  if (wet) parts.push(cap(c.precipitation));
-  if (c.fog) parts.push(wet ? 'nevoeiro' : 'Nevoeiro');
-  if (!parts.length) parts.push(cap(c.sky === 'não visível' ? 'nublado' : c.sky));
-  if (!wet && (c.ground === 'molhado' || c.ground === 'com poças')) parts.push('chão molhado');
+  if (wet) parts.push(cap(camWord(c.precipitation)));
+  if (c.fog) parts.push(wet ? T('nevoeiro', 'Nebel') : T('Nevoeiro', 'Nebel'));
+  if (!parts.length) parts.push(cap(camWord(c.sky === 'não visível' ? 'nublado' : c.sky)));
+  if (!wet && (c.ground === 'molhado' || c.ground === 'com poças')) parts.push(T('chão molhado', 'nasser Boden'));
   return parts.join(' · ');
 }
 
@@ -646,7 +692,7 @@ const camFresh = (c) => c && c.summary && (Date.now() - new Date(c.image_time).g
 function renderCamera(c) {
   lastCam = c;
   if (c?.image_time) $('cam-img').src = CAM_WORKER + 'foto?v=' + encodeURIComponent(c.image_time);
-  $('cam-time').textContent = c?.image_time ? `Foto das ${camHm(c.image_time)}` : '';
+  $('cam-time').textContent = c?.image_time ? `${T('Foto das', 'Foto von')} ${camHm(c.image_time)}` : '';
   applyCameraToNow();
   renderOutlook();
 }
@@ -657,9 +703,11 @@ function applyCameraToNow() {
   cond.textContent = camCondition(c);
   $('now-icon').innerHTML = icon(c.category === 'night' ? 'cloud' : c.category, '');
   // Visibility only earns a chip when it is not good
-  $('now-vis').innerHTML = `${MINI.eye}${esc(c.visibility)}`;
+  $('now-vis').innerHTML = `${MINI.eye}${esc(camWord(c.visibility))}`;
   $('now-vis').hidden = c.visibility === 'boa';
-  $('now-src').textContent = `Condição observada na câmera do Mundo a Vapor às ${camHm(c.image_time)}; números do Open-Meteo (modelo previa: ${$('now-cond').dataset.model}).`;
+  $('now-src').textContent = T(
+    `Condição observada na câmera do Mundo a Vapor às ${camHm(c.image_time)}; números do Open-Meteo (modelo previa: ${$('now-cond').dataset.model}).`,
+    `Zustand laut Kamera Mundo a Vapor um ${camHm(c.image_time)}; Messwerte von Open-Meteo (Modell erwartete: ${$('now-cond').dataset.model}).`);
 }
 
 // ---------- próximas horas ----------
@@ -678,7 +726,7 @@ function renderOutlook() {
   const H = lastCur.hourly, now = new Date(), nowKey = localHourKey(now);
   const today = localDate(now), tomorrow = +nowKey.slice(11, 13) >= 18;
   const endKey = (tomorrow ? addDays(today, 1) : today) + 'T20:00';
-  const label = tomorrow ? 'até amanhã às 20h' : 'até as 20h';
+  const label = tomorrow ? T('até amanhã às 20h', 'bis morgen 20 Uhr') : T('até as 20h', 'bis 20 Uhr');
   const models = lastNowSources.filter((s) => s.kind === 'model');
   const modelsAt = (key) => {
     const ms = models.filter((s) => s.hourly[key]);
@@ -691,7 +739,7 @@ function renderOutlook() {
     const cal = e ? learnedCalib(chance) : null;
     if (cal != null) chance = cal;
     return {
-      key, h: +key.slice(11, 13) + 'h', next: key.slice(0, 10) !== today,
+      key, h: hourLabel(+key.slice(11, 13)), next: key.slice(0, 10) !== today,
       t: m.t ?? H.temperature_2m[i], code: H.weather_code[i], cloud: H.cloud_cover[i], gust: H.wind_gusts_10m[i], vis: H.visibility?.[i],
       n: m.n, wet: m.wet, ens: e, chance, adj: false,
     };
@@ -705,10 +753,12 @@ function renderOutlook() {
   let camNote = '';
   if (camDry && modelWetNow) {
     hr.slice(0, CAM_DISCOUNT.length).forEach((x, i) => { x.chance = Math.round(x.chance * CAM_DISCOUNT[i]); x.adj = true; });
-    camNote = 'A câmera mostra tempo seco, mas os modelos davam chuva para agora: chance reduzida nas próximas 3 horas.';
+    camNote = T('A câmera mostra tempo seco, mas os modelos davam chuva para agora: chance reduzida nas próximas 3 horas.',
+      'Die Kamera zeigt trockenes Wetter, die Modelle erwarteten jetzt Regen: Wahrscheinlichkeit in den nächsten 3 Stunden reduziert.');
   } else if (camWet && !modelWetNow) {
     hr.slice(0, CAM_PERSIST.length).forEach((x, i) => { if (x.chance < CAM_PERSIST[i]) { x.chance = CAM_PERSIST[i]; x.adj = true; } });
-    camNote = 'A câmera mostra chuva que os modelos não previam: chuva considerada provável nas próximas 2 horas.';
+    camNote = T('A câmera mostra chuva que os modelos não previam: chuva considerada provável nas próximas 2 horas.',
+      'Die Kamera zeigt Regen, den die Modelle nicht erwarteten: Regen in den nächsten 2 Stunden als wahrscheinlich gewertet.');
   }
 
   // Radar + satellite nowcast (same hourly analysis as the camera): observation-based, so it may raise or
@@ -730,7 +780,7 @@ function renderOutlook() {
   const wetHour = (x) => x.chance >= 50 && (x.adj || majority(x));
   const dryHour = (x) => x.chance < 30 && (x.adj || !majority(x));
   const foggy = (x) => [45, 48].includes(x.code) || (x.vis != null && x.vis < 1000);
-  const agree = (x) => `${x.chance}% de chance${x.n ? `; ${x.wet} de ${x.n} modelos` : ''}`;
+  const agree = (x) => T(`${x.chance}% de chance${x.n ? `; ${x.wet} de ${x.n} modelos` : ''}`, `${x.chance} % Wahrscheinlichkeit${x.n ? `; ${x.wet} von ${x.n} Modellen` : ''}`);
   const nowWet = cam ? camWet : modelWetNow;
   const nowFog = cam ? cam.fog : [45, 48].includes(lastCur.weather_code);
   const tNow = lastCur.temperature_2m;
@@ -741,80 +791,85 @@ function renderOutlook() {
 
   const storm = hr.find((x) => x.code >= 95);
   if (storm && wetHour(storm)) {
-    ev.push({ sev: 'alta', short: `Trovoada ${storm.h}`, long: `Risco de trovoada por volta das ${storm.h}` });
-    verdict = { lvl: 'alert', cat: 'storm', title: `Trovoada por volta das ${storm.h}`, sub: `${storm.chance}% de chance de chuva` };
+    ev.push({ sev: 'alta', rain: true, short: T(`Trovoada ${storm.h}`, `Gewitter ${storm.h}`), long: T(`Risco de trovoada por volta das ${storm.h}`, `Gewitterrisiko gegen ${storm.h}`) });
+    verdict = { lvl: 'alert', cat: 'storm', title: T(`Trovoada por volta das ${storm.h}`, `Gewitter gegen ${storm.h}`), sub: T(`${storm.chance}% de chance de chuva`, `${storm.chance} % Regenwahrscheinlichkeit`) };
   } else if (storm) {
-    notes.push({ short: `Trovoada isolada? ${storm.h}`, long: `Trovoada isolada possível por volta das ${storm.h}, prevista por um só modelo` });
+    notes.push({ short: T(`Trovoada isolada? ${storm.h}`, `Gewitter? ${storm.h}`), long: T(`Trovoada isolada possível por volta das ${storm.h}, prevista por um só modelo`, `Vereinzeltes Gewitter gegen ${storm.h} möglich, nur von einem Modell vorhergesagt`) });
   }
   if (!nowWet) {
     const r = hr.find(wetHour);
     const start = radarStart && wetHour(radarStart) ? radarStart : r;
     if (start) {
       const byRadar = start === radarStart;
-      ev.push({ sev: 'alta', short: `Chuva ${start.h}`, long: byRadar ? `Radar e satélite: chuva deve chegar por volta das ${start.h}` : `Chuva deve começar por volta das ${start.h} (${agree(start)})` });
-      verdict ||= { lvl: 'alert', cat: 'rain', title: `Chuva a partir das ${start.h}`, sub: `${start.chance}% de chance${byRadar ? ' · visto no radar' : ''}` };
+      ev.push({ sev: 'alta', rain: true, short: T(`Chuva ${start.h}`, `Regen ${start.h}`),
+        long: byRadar ? T(`Radar e satélite: chuva deve chegar por volta das ${start.h}`, `Radar und Satellit: Regen erreicht Canela voraussichtlich gegen ${start.h}`)
+          : T(`Chuva deve começar por volta das ${start.h} (${agree(start)})`, `Regen beginnt voraussichtlich gegen ${start.h} (${agree(start)})`) });
+      verdict ||= { lvl: 'alert', cat: 'rain', title: T(`Chuva a partir das ${start.h}`, `Regen ab ${start.h}`),
+        sub: T(`${start.chance}% de chance${byRadar ? ' · visto no radar' : ''}`, `${start.chance} % Wahrscheinlichkeit${byRadar ? ' · im Radar sichtbar' : ''}`) };
     } else {
       const top = hr.reduce((a, b) => (b.chance > a.chance ? b : a));
-      if (top.chance >= 30 || top.wet >= 3) notes.push({ short: `Chuva possível ${top.h} · ${top.chance}%`, long: `Possibilidade de chuva por volta das ${top.h} (${agree(top)}), sem acordo da maioria dos modelos` });
+      if (top.chance >= 30 || top.wet >= 3) notes.push({ possible: true, at: top,
+        short: T(`Chuva possível ${top.h} · ${top.chance}%`, `Regen möglich ${top.h} · ${top.chance} %`),
+        long: T(`Possibilidade de chuva por volta das ${top.h} (${agree(top)}), sem acordo da maioria dos modelos`, `Regen gegen ${top.h} möglich (${agree(top)}), ohne Mehrheit der Modelle`) });
     }
   } else {
     const k = hr.findIndex((x, i) => dryHour(x) && hr[i + 1] && dryHour(hr[i + 1]));
     if (k >= 0) {
-      ev.push({ sev: 'média', short: `Para ${hr[k].h}`, long: `Chuva deve parar por volta das ${hr[k].h}` });
-      verdict ||= { lvl: 'warn', cat: 'showers', title: `Chuva para por volta das ${hr[k].h}`, sub: 'chove agora' };
+      ev.push({ sev: 'média', rain: true, short: T(`Para ${hr[k].h}`, `Ende ${hr[k].h}`), long: T(`Chuva deve parar por volta das ${hr[k].h}`, `Regen hört voraussichtlich gegen ${hr[k].h} auf`) });
+      verdict ||= { lvl: 'warn', cat: 'showers', title: T(`Chuva para por volta das ${hr[k].h}`, `Regen hört gegen ${hr[k].h} auf`), sub: T('chove agora', 'es regnet jetzt') };
     } else {
-      verdict ||= { lvl: 'alert', cat: 'rain', title: `Chuva continua ${label}`, sub: 'chove agora' };
+      verdict ||= { lvl: 'alert', cat: 'rain', title: T(`Chuva continua ${label}`, `Regen hält an ${label}`), sub: T('chove agora', 'es regnet jetzt') };
     }
   }
   const hi = hr.reduce((a, b) => (b.t > a.t ? b : a)), lo = hr.reduce((a, b) => (b.t < a.t ? b : a));
   // Warming that peaks between 9h and 17h and cooling towards the evening or night are the normal daily cycle:
   // only a swing against that cycle (e.g. a cold front cooling the afternoon) or of 8 °C or more is significant
   const hourOf = (x) => +x.key.slice(11, 13);
+  const odd = T('fora do normal para o horário', 'untypisch für die Tageszeit');
   if (hi.t - tNow >= 4) {
-    const odd = hi.t - tNow >= 8 || hourOf(hi) < 9 || hourOf(hi) > 17;
-    if (odd) {
-      ev.push({ sev: 'média', short: `Esquenta ${fmt(hi.t)}° ${hi.h}`, long: `Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}, fora do normal para o horário` });
-      verdict ||= { lvl: 'warn', cat: 'sun', title: `Esquenta para ${fmt(hi.t)}° até as ${hi.h}`, sub: 'fora do normal para o horário' };
-    } else notes.push({ short: `Máx. ${fmt(hi.t)}° ${hi.h}`, long: `Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}` });
+    if (hi.t - tNow >= 8 || hourOf(hi) < 9 || hourOf(hi) > 17) {
+      ev.push({ sev: 'média', short: T(`Esquenta ${fmt(hi.t)}° ${hi.h}`, `Wärmer ${fmt(hi.t)}° ${hi.h}`), long: T(`Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}, ${odd}`, `Temperatur steigt gegen ${hi.h} auf ${fmt(hi.t)}°, ${odd}`) });
+      verdict ||= { lvl: 'warn', cat: 'sun', title: T(`Esquenta para ${fmt(hi.t)}° até as ${hi.h}`, `Erwärmung auf ${fmt(hi.t)}° bis ${hi.h}`), sub: odd };
+    } else notes.push({ short: T(`Máx. ${fmt(hi.t)}° ${hi.h}`, `Max. ${fmt(hi.t)}° ${hi.h}`), long: T(`Temperatura sobe para ${fmt(hi.t)}° por volta das ${hi.h}`, `Temperatur steigt gegen ${hi.h} auf ${fmt(hi.t)}°`) });
   }
   if (tNow - lo.t >= 4) {
-    const odd = tNow - lo.t >= 8 || (hourOf(lo) >= 9 && hourOf(lo) <= 15);
-    if (odd) {
-      ev.push({ sev: 'média', short: `Esfria ${fmt(lo.t)}° ${lo.h}`, long: `Temperatura cai para ${fmt(lo.t)}° por volta das ${lo.h}, fora do normal para o horário` });
-      verdict ||= { lvl: 'warn', cat: 'cloud', title: `Esfria para ${fmt(lo.t)}° até as ${lo.h}`, sub: 'fora do normal para o horário' };
-    } else notes.push({ short: `${fmt(lo.t)}° às ${lo.h}`, long: `Temperatura cai para ${fmt(lo.t)}° até as ${lo.h}, queda normal do fim do dia` });
+    if (tNow - lo.t >= 8 || (hourOf(lo) >= 9 && hourOf(lo) <= 15)) {
+      ev.push({ sev: 'média', short: T(`Esfria ${fmt(lo.t)}° ${lo.h}`, `Kälter ${fmt(lo.t)}° ${lo.h}`), long: T(`Temperatura cai para ${fmt(lo.t)}° por volta das ${lo.h}, ${odd}`, `Temperatur fällt gegen ${lo.h} auf ${fmt(lo.t)}°, ${odd}`) });
+      verdict ||= { lvl: 'warn', cat: 'cloud', title: T(`Esfria para ${fmt(lo.t)}° até as ${lo.h}`, `Abkühlung auf ${fmt(lo.t)}° bis ${lo.h}`), sub: odd };
+    } else notes.push({ short: T(`${fmt(lo.t)}° às ${lo.h}`, `${fmt(lo.t)}° um ${lo.h}`), long: T(`Temperatura cai para ${fmt(lo.t)}° até as ${lo.h}, queda normal do fim do dia`, `Temperatur fällt bis ${lo.h} auf ${fmt(lo.t)}°, normale abendliche Abkühlung`) });
   }
   // Gusts, fog and sky come from the best-match model alone, so they are notes unless the gusts are severe
   const g = hr.reduce((a, b) => ((b.gust ?? 0) > (a.gust ?? 0) ? b : a));
   if ((g.gust ?? 0) >= 70) {
-    ev.push({ sev: 'alta', short: `Rajadas ${fmt(g.gust)} km/h ${g.h}`, long: `Rajadas fortes, de até ${fmt(g.gust)} km/h, por volta das ${g.h}` });
-    verdict ||= { lvl: 'alert', cat: 'cloud', title: `Rajadas fortes por volta das ${g.h}`, sub: `até ${fmt(g.gust)} km/h` };
-  } else if ((g.gust ?? 0) >= 50) notes.push({ short: `Rajadas ${fmt(g.gust)} km/h ${g.h}`, long: `Rajadas de até ${fmt(g.gust)} km/h por volta das ${g.h}` });
+    ev.push({ sev: 'alta', short: T(`Rajadas ${fmt(g.gust)} km/h ${g.h}`, `Böen ${fmt(g.gust)} km/h ${g.h}`), long: T(`Rajadas fortes, de até ${fmt(g.gust)} km/h, por volta das ${g.h}`, `Starke Böen bis ${fmt(g.gust)} km/h gegen ${g.h}`) });
+    verdict ||= { lvl: 'alert', cat: 'cloud', title: T(`Rajadas fortes por volta das ${g.h}`, `Starke Böen gegen ${g.h}`), sub: T(`até ${fmt(g.gust)} km/h`, `bis ${fmt(g.gust)} km/h`) };
+  } else if ((g.gust ?? 0) >= 50) notes.push({ short: T(`Rajadas ${fmt(g.gust)} km/h ${g.h}`, `Böen ${fmt(g.gust)} km/h ${g.h}`), long: T(`Rajadas de até ${fmt(g.gust)} km/h por volta das ${g.h}`, `Böen bis ${fmt(g.gust)} km/h gegen ${g.h}`) });
   if (nowFog) {
     // Only when the model also has fog now (low visibility this hour); then two clear hours in a row
     const visNow = H.visibility?.[H.time.indexOf(nowKey)];
     const k = visNow != null && visNow < 5000
       ? hr.findIndex((x, i) => x.vis != null && x.vis >= 5000 && !foggy(x) && hr[i + 1] && hr[i + 1].vis >= 5000) : -1;
-    if (k >= 0) notes.push({ short: `Nevoeiro sai ${hr[k].h}`, long: `Nevoeiro tende a dissipar por volta das ${hr[k].h}` });
+    if (k >= 0) notes.push({ short: T(`Nevoeiro sai ${hr[k].h}`, `Nebel löst sich ${hr[k].h}`), long: T(`Nevoeiro tende a dissipar por volta das ${hr[k].h}`, `Nebel löst sich voraussichtlich gegen ${hr[k].h} auf`) });
   } else {
     const f = hr.find(foggy);
-    if (f) notes.push({ short: `Nevoeiro ${f.h}`, long: `Nevoeiro pode voltar por volta das ${f.h}` });
+    if (f) notes.push({ short: T(`Nevoeiro ${f.h}`, `Nebel ${f.h}`), long: T(`Nevoeiro pode voltar por volta das ${f.h}`, `Nebel gegen ${f.h} möglich`) });
   }
-  if (!ev.some((e) => /chuva|trovoada/i.test(e.long))) {
+  if (!ev.some((e) => e.rain)) {
     if (lastCur.cloud_cover >= 80) {
       const s = hr.find((x) => x.cloud <= 40 && dryHour(x));
-      if (s) notes.push({ short: `Abre ${s.h}`, long: `${s.key < lastCur.sunset ? 'Sol entre nuvens' : 'Céu deve abrir'} a partir das ${s.h}` });
+      if (s) notes.push({ short: T(`Abre ${s.h}`, `Auflockerung ${s.h}`), long: s.key < lastCur.sunset ? T(`Sol entre nuvens a partir das ${s.h}`, `Ab ${s.h} Sonne und Wolken`) : T(`Céu deve abrir a partir das ${s.h}`, `Ab ${s.h} klart es auf`) });
     } else if (lastCur.cloud_cover <= 40) {
       const s = hr.find((x) => x.cloud >= 85);
-      if (s) notes.push({ short: `Fecha ${s.h}`, long: `Céu pode fechar a partir das ${s.h}` });
+      if (s) notes.push({ short: T(`Fecha ${s.h}`, `Zuziehend ${s.h}`), long: T(`Céu pode fechar a partir das ${s.h}`, `Ab ${s.h} zieht es zu`) });
     }
   }
 
   const maxChance = Math.max(...hr.map((x) => x.chance));
-  const possible = notes.find((n) => n.short.startsWith('Chuva possível'));
+  const possible = notes.find((n) => n.possible);
   verdict ||= {
-    lvl: 'ok', cat: lastCur.is_day === 0 ? 'cloud' : 'sun', title: `Sem chuva ${label}`,
-    sub: possible ? `${possible.short.replace('Chuva possível', 'possível às')}` : `chance máx. ${maxChance}% · ${fmt(lo.t)}° a ${fmt(hi.t)}°`,
+    lvl: 'ok', cat: lastCur.is_day === 0 ? 'cloud' : 'sun', title: T(`Sem chuva ${label}`, `Kein Regen ${label}`),
+    sub: possible ? T(`possível às ${possible.at.h} · ${possible.at.chance}%`, `möglich um ${possible.at.h} · ${possible.at.chance} %`)
+      : T(`chance máx. ${maxChance}% · ${fmt(lo.t)}° a ${fmt(hi.t)}°`, `max. ${maxChance} % · ${fmt(lo.t)}° bis ${fmt(hi.t)}°`),
   };
   $('verdict').className = `verdict ${verdict.lvl}`;
   $('verdict').innerHTML = `${icon(verdict.cat, '')}<div><b>${esc(verdict.title)}</b><span>${esc(verdict.sub)}</span></div>`;
@@ -822,9 +877,12 @@ function renderOutlook() {
   // Rain icon only where rain is likely; otherwise the sky from the best-match model
   const hourCat = (x) => wetHour(x) ? (x.code >= 95 ? 'storm' : [80, 81, 82].includes(x.code) ? 'showers' : 'rain')
     : foggy(x) ? 'fog' : x.cloud < 25 ? 'sun' : x.cloud < 70 ? 'partly' : 'cloud';
+  const tileTitle = (x) => T(
+    `${x.chance}% de chance de chuva${x.ens ? ` (${x.ens.wet} de ${x.ens.total} cenários)` : ''}${x.n ? `; chuva em ${x.wet} de ${x.n} modelos` : ''}${x.adj ? '; ajustado pela observação' : ''}`,
+    `${x.chance} % Regenwahrscheinlichkeit${x.ens ? ` (${x.ens.wet} von ${x.ens.total} Szenarien)` : ''}${x.n ? `; Regen in ${x.wet} von ${x.n} Modellen` : ''}${x.adj ? '; durch Beobachtung angepasst' : ''}`);
   const strip = hr.map((x) => `
-    <div class="ol-h${wetHour(x) ? ' wet' : ''}" title="${esc(`${x.chance}% de chance de chuva${x.ens ? ` (${x.ens.wet} de ${x.ens.total} cenários)` : ''}${x.n ? `; chuva em ${x.wet} de ${x.n} modelos` : ''}${x.adj ? '; ajustado pela observação' : ''}`)}">
-      <span class="hh">${x.next && x.key.endsWith('T00:00') ? 'amanhã' : x.h}</span>${icon(hourCat(x), '')}
+    <div class="ol-h${wetHour(x) ? ' wet' : ''}" title="${esc(tileTitle(x))}">
+      <span class="hh">${x.next && x.key.endsWith('T00:00') ? T('amanhã', 'morgen') : x.h}</span>${icon(hourCat(x), '')}
       <span class="t">${fmt(x.t)}°</span>
       <span class="pb"><i style="width:${x.chance}%"></i></span>
       <span class="p">${x.chance}%${x.adj ? '*' : ''}</span>
@@ -833,24 +891,26 @@ function renderOutlook() {
   const chips = [...ev.map((e) => `<span class="evc ${e.sev}">${esc(e.short)}</span>`),
     ...notes.filter((n) => !(verdict.lvl === 'ok' && n === possible)).map((n) => `<span class="evc nota">${esc(n.short)}</span>`)];
   box.innerHTML = `
-    <div class="ol-label">Próximas horas · chance de chuva</div>
+    <div class="ol-label">${T('Próximas horas · chance de chuva', 'Nächste Stunden · Regenwahrscheinlichkeit')}</div>
     <div class="ol-strip">${strip}</div>
     ${chips.length ? `<div class="ev-chips">${chips.join('')}</div>` : ''}`;
 
   // Everything longer goes to "Detalhes"
   const nEns = Math.max(0, ...hr.map((x) => x.ens?.total ?? 0));
   const source = nEns
-    ? `Chance de chuva: parte dos ${nEns} cenários dos ensembles ECMWF e GFS com chuva em cada hora`
-    : `Chance de chuva: parte dos ${models.length} modelos com chuva em cada hora`;
-  const adjNote = hr.some((x) => x.adj) ? ` (*) Horas ajustadas pela observação: ${camNote || 'radar e satélite.'}` : '';
+    ? T(`Chance de chuva: parte dos ${nEns} cenários dos ensembles ECMWF e GFS com chuva em cada hora`, `Regenwahrscheinlichkeit: Anteil der ${nEns} Ensemble-Szenarien von ECMWF und GFS mit Regen in der jeweiligen Stunde`)
+    : T(`Chance de chuva: parte dos ${models.length} modelos com chuva em cada hora`, `Regenwahrscheinlichkeit: Anteil der ${models.length} Modelle mit Regen in der jeweiligen Stunde`);
+  const adjNote = hr.some((x) => x.adj) ? ` ${T('(*) Horas ajustadas pela observação:', '(*) Durch Beobachtung angepasste Stunden:')} ${camNote || T('radar e satélite.', 'Radar und Satellit.')}` : '';
   const items = [...ev.map((e) => `<li class="${e.sev}">${esc(e.long)}</li>`), ...notes.map((n) => `<li class="nota">${esc(n.long)}</li>`)];
+  // The Worker writes its free texts in both languages; older assessments may only have Portuguese
+  const ncText = (k) => (DE && nc[`${k}_de`]) || nc[k];
   $('ol-details').innerHTML = `
-    ${nc ? `<p><b>Radar e satélite</b> <span class="when">(radar ${esc(nc.radar_time)})</span>: ${esc(nc.nowcast_summary)}</p>
-      <p class="detail">${esc(nc.radar_summary)} ${esc(nc.satellite_summary)}
+    ${nc ? `<p><b>${T('Radar e satélite', 'Radar und Satellit')}</b> <span class="when">(Radar ${esc(nc.radar_time)})</span>: ${esc(ncText('nowcast_summary'))}</p>
+      <p class="detail">${esc(ncText('radar_summary'))} ${esc(ncText('satellite_summary'))}
         <a href="https://radar-poa-13561874921.us-east1.run.app/" target="_blank" rel="noopener">Radar ↗</a>
-        <a href="https://www.star.nesdis.noaa.gov/goes/sector.php?sat=G19&amp;sector=ssa" target="_blank" rel="noopener">Satélite ↗</a></p>` : ''}
+        <a href="https://www.star.nesdis.noaa.gov/goes/sector.php?sat=G19&amp;sector=ssa" target="_blank" rel="noopener">${T('Satélite', 'Satellit')} ↗</a></p>` : ''}
     ${items.length ? `<ul class="ol-events">${items.join('')}</ul>` : ''}
-    <p class="detail">Previsão ${label}. ${source}; temperatura: mediana dos ${models.length} modelos.${adjNote}</p>`;
+    <p class="detail">${T(`Previsão ${label}.`, `Vorhersage ${label}.`)} ${source}; ${T(`temperatura: mediana dos ${models.length} modelos.`, `Temperatur: Median der ${models.length} Modelle.`)}${adjNote}</p>`;
 }
 
 // ---------- autoverificação ----------
@@ -885,55 +945,68 @@ const weightedMean = (pairs) => {
 const learnedCalib = (chance) => learning()?.rainCalib?.[Math.min(9, Math.floor(chance / 10))] ?? null;
 
 const MODEL_NAME = Object.fromEntries(OM_MODELS.map((m) => [m.id, m.name]));
-const RULE_NAME = { pagina: 'Aviso da página (ensembles e maioria)', ensemble: 'Ensembles com 50% ou mais', maioria: 'Maioria dos 10 modelos' };
-const dm = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : '–';
+const RULE_NAME = {
+  pagina: T('Aviso da página (ensembles e maioria)', 'Warnung der Seite (Ensembles und Mehrheit)'),
+  ensemble: T('Ensembles com 50% ou mais', 'Ensembles mit 50 % oder mehr'),
+  maioria: T('Maioria dos 10 modelos', 'Mehrheit der 10 Modelle'),
+};
+const dm = (iso) => iso ? T(iso.slice(8, 10) + '/' + iso.slice(5, 7), iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.') : '–';
 const pc = (v) => (v == null ? '–' : v + '%');
 
 function renderStats() {
   const box = $('stats'), S = lastStats;
   if (!S || !S.days) {
-    box.innerHTML = `<p class="st-note">O registo automático começou em ${dm(VERIFY_SINCE)}/${VERIFY_SINCE.slice(0, 4)}. A primeira conferência sai à 1h da madrugada seguinte; as correções começam com 14 dias conferidos.</p>`;
+    box.innerHTML = `<p class="st-note">${T(
+      `O registo automático começou em ${dm(VERIFY_SINCE)}/${VERIFY_SINCE.slice(0, 4)}. A primeira conferência sai à 1h da madrugada seguinte; as correções começam com 14 dias conferidos.`,
+      `Die automatische Aufzeichnung läuft seit ${dm(VERIFY_SINCE)}${VERIFY_SINCE.slice(0, 4)}. Die erste Auswertung erfolgt in der folgenden Nacht um 1 Uhr; Korrekturen ab 14 ausgewerteten Tagen.`)}</p>`;
     return;
   }
   const L = S.learning, left = Math.max(0, L.minDays - S.days);
   const ref = S.sites.sbcx, can = S.sites.canela;
   const ruleRows = ['pagina', 'ensemble', 'maioria'].map((r) => [RULE_NAME[r], ref.rain[r], true])
     .concat(OM_MODELS.map((m) => [m.name, ref.rain[m.id], false]).sort((a, b) => (b[1]?.acc ?? -1) - (a[1]?.acc ?? -1)));
+  const hours = T('Horas', 'Stunden');
   const rainTable = `<div class="tablebox"><table class="st-table">
-    <thead><tr><th>Regra ou modelo</th><th>Chuvas previstas</th><th>Falsos alarmes</th><th>Acerto geral</th><th>Horas</th></tr></thead>
+    <thead><tr><th>${T('Regra ou modelo', 'Regel oder Modell')}</th><th>${T('Chuvas previstas', 'Vorhergesagter Regen')}</th><th>${T('Falsos alarmes', 'Fehlalarme')}</th><th>${T('Acerto geral', 'Gesamttreffer')}</th><th>${hours}</th></tr></thead>
     <tbody>${ruleRows.map(([name, s, main]) => `<tr class="${main ? 'main' : ''}"><th>${esc(name)}</th><td>${pc(s?.pod)}</td><td>${pc(s?.far)}</td><td>${pc(s?.acc)}</td><td>${s?.n ?? 0}</td></tr>`).join('')}</tbody>
   </table></div>`;
   const tempRows = OM_MODELS.map((m) => [m, ref.temp[m.id]]).filter(([, t]) => t?.n).sort((a, b) => a[1].mae - b[1].mae);
   const tempTable = tempRows.length ? `<div class="tablebox"><table class="st-table">
-    <thead><tr><th>Modelo</th><th>Erro médio</th><th>Desvio sistemático</th>${L.active ? '<th>Peso</th>' : ''}<th>Horas</th></tr></thead>
+    <thead><tr><th>${T('Modelo', 'Modell')}</th><th>${T('Erro médio', 'Mittlerer Fehler')}</th><th>${T('Desvio sistemático', 'Systematische Abweichung')}</th>${L.active ? `<th>${T('Peso', 'Gewicht')}</th>` : ''}<th>${hours}</th></tr></thead>
     <tbody>${tempRows.map(([m, t]) => `<tr><th>${esc(m.name)}</th><td>${fmt(t.mae, 1)} °C</td><td>${t.bias > 0 ? '+' : ''}${fmt(t.bias, 1)} °C</td>${L.active ? `<td>${L.weights[m.id] != null ? Math.round(L.weights[m.id] * 100) + '%' : '–'}</td>` : ''}<td>${t.n}</td></tr>`).join('')}</tbody>
-  </table></div>` : '<p class="st-note">Ainda sem temperaturas observadas.</p>';
+  </table></div>` : `<p class="st-note">${T('Ainda sem temperaturas observadas.', 'Noch keine gemessenen Temperaturen.')}</p>`;
   const cp = can?.rain?.pagina;
   const canela = cp?.n
-    ? `Em Canela, a câmera observou ${can.obsHours} hora(s) com análise. Nessas horas, o aviso de chuva da página acertou ${pc(cp.acc)} (chuvas previstas: ${pc(cp.pod)}; falsos alarmes: ${pc(cp.far)}).`
-    : 'Em Canela ainda não há horas conferidas pela câmera.';
+    ? T(`Em Canela, a câmera observou ${can.obsHours} hora(s) com análise. Nessas horas, o aviso de chuva da página acertou ${pc(cp.acc)} (chuvas previstas: ${pc(cp.pod)}; falsos alarmes: ${pc(cp.far)}).`,
+      `In Canela hat die Kamera ${can.obsHours} Stunde(n) ausgewertet. In diesen Stunden lag die Regenwarnung der Seite zu ${pc(cp.acc)} richtig (vorhergesagter Regen: ${pc(cp.pod)}; Fehlalarme: ${pc(cp.far)}).`)
+    : T('Em Canela ainda não há horas conferidas pela câmera.', 'In Canela gibt es noch keine von der Kamera ausgewerteten Stunden.');
   const rel = ref.reliability.filter((r) => r.n > 0);
-  const calib = rel.length ? `<ul class="st-cal">${rel.map((r) => `<li>Ensembles com ${r.bin} de chance: choveu em <b>${pc(r.observed)}</b> dos casos (${r.n} horas)</li>`).join('')}</ul>` : '';
+  const calib = rel.length ? `<ul class="st-cal">${rel.map((r) => T(
+    `<li>Ensembles com ${r.bin} de chance: choveu em <b>${pc(r.observed)}</b> dos casos (${r.n} horas)</li>`,
+    `<li>Ensembles mit ${r.bin} Wahrscheinlichkeit: Regen in <b>${pc(r.observed)}</b> der Fälle (${r.n} Stunden)</li>`)).join('')}</ul>` : '';
   box.innerHTML = `
-    <p class="st-head"><b>${S.days} dia(s) conferido(s)</b>, de ${dm(S.from)} a ${dm(S.to)}. Correções: ${L.active
-      ? '<b>ativas</b> (viés de temperatura de cada modelo retirado, consenso de máxima e mínima ponderado pelo acerto e chance de chuva hora a hora calibrada).'
-      : `começam com ${L.minDays} dias conferidos (faltam ${left}).`}</p>
-    <div><h3>Chuva hora a hora · aeroporto de Caxias do Sul</h3>${rainTable}
-      <p class="st-note">"Chuvas previstas": das horas em que choveu, quantas a regra previu. "Falsos alarmes": dos avisos de chuva, quantos não se confirmaram. Previsões feitas de 1 a 24 horas antes.</p></div>
+    <p class="st-head">${T(`<b>${S.days} dia(s) conferido(s)</b>, de ${dm(S.from)} a ${dm(S.to)}.`, `<b>${S.days} ausgewertete(r) Tag(e)</b>, ${dm(S.from)} bis ${dm(S.to)}.`)} ${T('Correções:', 'Korrekturen:')} ${L.active
+      ? T('<b>ativas</b> (viés de temperatura de cada modelo retirado, consenso de máxima e mínima ponderado pelo acerto e chance de chuva hora a hora calibrada).',
+        '<b>aktiv</b> (Temperaturabweichung jedes Modells entfernt, Konsens für Höchst- und Tiefstwerte nach Trefferquote gewichtet, stündliche Regenwahrscheinlichkeit kalibriert).')
+      : T(`começam com ${L.minDays} dias conferidos (faltam ${left}).`, `ab ${L.minDays} ausgewerteten Tagen (noch ${left}).`)}</p>
+    <div><h3>${T('Chuva hora a hora · aeroporto de Caxias do Sul', 'Stündlicher Regen · Flughafen Caxias do Sul')}</h3>${rainTable}
+      <p class="st-note">${T('"Chuvas previstas": das horas em que choveu, quantas a regra previu. "Falsos alarmes": dos avisos de chuva, quantos não se confirmaram. Previsões feitas de 1 a 24 horas antes.',
+        '„Vorhergesagter Regen“: Anteil der Regenstunden, die die Regel vorhergesagt hat. „Fehlalarme“: Anteil der Regenwarnungen, die nicht eintrafen. Vorhersagen 1 bis 24 Stunden im Voraus.')}</p></div>
     <p class="st-note">${canela}</p>
-    <div><h3>Temperatura · erro de cada modelo</h3>${tempTable}
-      <p class="st-note">Desvio sistemático positivo: o modelo costuma prever mais quente do que acontece.</p></div>
-    ${calib ? `<div><h3>Calibração da chance de chuva</h3>${calib}</div>` : ''}`;
+    <div><h3>${T('Temperatura · erro de cada modelo', 'Temperatur · Fehler jedes Modells')}</h3>${tempTable}
+      <p class="st-note">${T('Desvio sistemático positivo: o modelo costuma prever mais quente do que acontece.', 'Positive systematische Abweichung: das Modell sagt meist wärmer vorher als gemessen.')}</p></div>
+    ${calib ? `<div><h3>${T('Calibração da chance de chuva', 'Kalibrierung der Regenwahrscheinlichkeit')}</h3>${calib}</div>` : ''}`;
 }
 
 // ---------- rendering ----------
 const STATUS = [
-  ['om', 'Open-Meteo · 10 modelos'], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'], ['cam', 'Câmera, radar e satélite'],
+  ['om', T('Open-Meteo · 10 modelos', 'Open-Meteo · 10 Modelle')], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'],
+  ['cam', T('Câmera, radar e satélite', 'Kamera, Radar und Satellit')],
 ];
 function renderStatus(st) {
   $('status').innerHTML = STATUS.map(([k, label]) => {
     const s = st[k] || 'wait';
-    const title = s === 'ok' ? 'carregado' : s === 'wait' ? 'a carregar' : 'falhou: ' + s;
+    const title = s === 'ok' ? T('carregado', 'geladen') : s === 'wait' ? T('a carregar', 'wird geladen') : T('falhou: ', 'Fehler: ') + s;
     return `<span class="chip ${s === 'ok' ? 'ok' : s === 'wait' ? 'wait' : 'err'}" title="${esc(title)}">${esc(label)}</span>`;
   }).join('');
 }
@@ -950,44 +1023,45 @@ function renderNow(cur, sources) {
         <span class="big num">${fmt(cur.temperature_2m)}°</span><span id="now-icon">${icon(info.cat, '')}</span>
         <div class="hero-txt">
           <div class="now-cond" id="now-cond" data-model="${esc(info.text.toLowerCase())}">${esc(info.text)}</div>
-          <div class="hero-sub">Sensação <b class="num">${fmt(cur.apparent_temperature)}°</b></div>
+          <div class="hero-sub">${T('Sensação', 'Gefühlt')} <b class="num">${fmt(cur.apparent_temperature)}°</b></div>
         </div>
       </div>
       <div class="verdict" id="verdict"></div>
       <div class="chips-now">
-        <span class="cn" title="Vento e rajadas">${MINI.wind}${fmt(cur.wind_speed_10m)}<small>km/h · raj. ${fmt(cur.wind_gusts_10m)}</small></span>
-        <span class="cn" title="Umidade">${MINI.drop}${fmt(cur.relative_humidity_2m)}%</span>
-        <span class="cn" title="Nascer do sol">${MINI.rise}${hm(cur.sunrise)}</span>
-        <span class="cn" title="Pôr do sol">${MINI.set}${hm(cur.sunset)}</span>
-        <span class="cn" id="now-vis" title="Visibilidade (câmera)" hidden></span>
+        <span class="cn" title="${T('Vento e rajadas', 'Wind und Böen')}">${MINI.wind}${fmt(cur.wind_speed_10m)}<small>km/h · ${T('raj.', 'Böen')} ${fmt(cur.wind_gusts_10m)}</small></span>
+        <span class="cn" title="${T('Umidade', 'Luftfeuchtigkeit')}">${MINI.drop}${fmt(cur.relative_humidity_2m)}%</span>
+        <span class="cn" title="${T('Nascer do sol', 'Sonnenaufgang')}">${MINI.rise}${hm(cur.sunrise)}</span>
+        <span class="cn" title="${T('Pôr do sol', 'Sonnenuntergang')}">${MINI.set}${hm(cur.sunset)}</span>
+        <span class="cn" id="now-vis" title="${T('Visibilidade (câmera)', 'Sicht (Kamera)')}" hidden></span>
       </div>
       <div class="outlook" id="outlook"></div>
       <details class="more" id="now-more">
-        <summary>Detalhes</summary>
+        <summary>${T('Detalhes', 'Details')}</summary>
         <div class="more-body">
           <div id="ol-details"></div>
           <p class="now-src" id="now-src"></p>
-          <p class="now-src">Agora: Open-Meteo, melhor modelo para o local · nuvens ${fmt(cur.cloud_cover)}% · pressão ${fmt(cur.pressure_msl)} hPa.</p>
+          <p class="now-src">${T(`Agora: Open-Meteo, melhor modelo para o local · nuvens ${fmt(cur.cloud_cover)}% · pressão ${fmt(cur.pressure_msl)} hPa.`,
+            `Jetzt: Open-Meteo, bestes Modell für den Ort · Bewölkung ${fmt(cur.cloud_cover)} % · Luftdruck ${fmt(cur.pressure_msl)} hPa.`)}</p>
         </div>
       </details>`;
     lastCur = cur; lastNowSources = sources;
     applyCameraToNow();
     renderOutlook();
   } else {
-    main.innerHTML = '<p class="err">Não foi possível obter a condição atual do Open-Meteo.</p>';
+    main.innerHTML = `<p class="err">${T('Não foi possível obter a condição atual do Open-Meteo.', 'Die aktuellen Werte von Open-Meteo konnten nicht geladen werden.')}</p>`;
   }
   const rows = [];
   const nowKey = localHourKey(new Date());
   sources.filter((s) => s.now).forEach((s) => {
     const n = s.now;
-    const extra = [n.text, n.hum != null ? `umidade ${fmt(n.hum)}%` : '', n.wind != null ? `vento ${fmt(n.wind)} km/h` : ''].filter(Boolean).join(' · ');
+    const extra = [n.text, n.hum != null ? `${T('umidade', 'Feuchte')} ${fmt(n.hum)}%` : '', n.wind != null ? `${T('vento', 'Wind')} ${fmt(n.wind)} km/h` : ''].filter(Boolean).join(' · ');
     rows.push(`<div class="now-row"><div class="src">${esc(s.name)}<small>${esc(s.org)}</small></div><div class="t">${fmt(n.t)}°</div><div class="d">${esc(extra)}</div></div>`);
   });
   const modelNow = sources.filter((s) => !s.now && s.hourly[nowKey]).map((s) => s.hourly[nowKey].t);
   if (modelNow.length) {
-    rows.push(`<div class="now-row"><div class="src">Modelos numéricos<small>${modelNow.length} modelos, hora atual</small></div><div class="t">${fmt(median(modelNow))}°</div><div class="d">mediana · variam de ${fmt(minOf(modelNow))}° a ${fmt(maxOf(modelNow))}°</div></div>`);
+    rows.push(`<div class="now-row"><div class="src">${T('Modelos numéricos', 'Numerische Modelle')}<small>${T(`${modelNow.length} modelos, hora atual`, `${modelNow.length} Modelle, aktuelle Stunde`)}</small></div><div class="t">${fmt(median(modelNow))}°</div><div class="d">${T(`mediana · variam de ${fmt(minOf(modelNow))}° a ${fmt(maxOf(modelNow))}°`, `Median · von ${fmt(minOf(modelNow))}° bis ${fmt(maxOf(modelNow))}°`)}</div></div>`);
   }
-  $('now-list').innerHTML = rows.join('') || '<div class="now-row"><div class="d">Sem dados.</div></div>';
+  $('now-list').innerHTML = rows.join('') || `<div class="now-row"><div class="d">${T('Sem dados.', 'Keine Daten.')}</div></div>`;
 }
 
 function consensus(sources, dates) {
@@ -1006,10 +1080,10 @@ function consensus(sources, dates) {
     const storms = cats.storm || 0, showers = cats.showers || 0;
     let cat, text;
     if (pr != null && pr >= 1) {
-      if (storms >= Math.max(2, vals.length / 4)) { cat = 'storm'; text = 'Chuva com trovoadas'; }
-      else if (pr >= 15) { cat = 'rain'; text = 'Chuva forte'; }
-      else if (pr >= 5) { cat = showers > (cats.rain || 0) ? 'showers' : 'rain'; text = cat === 'showers' ? 'Pancadas de chuva' : 'Chuva'; }
-      else { cat = showers > (cats.rain || 0) ? 'showers' : 'rain'; text = cat === 'showers' ? 'Pancadas isoladas' : 'Chuva fraca'; }
+      if (storms >= Math.max(2, vals.length / 4)) { cat = 'storm'; text = T('Chuva com trovoadas', 'Regen mit Gewittern'); }
+      else if (pr >= 15) { cat = 'rain'; text = T('Chuva forte', 'Starker Regen'); }
+      else if (pr >= 5) { cat = showers > (cats.rain || 0) ? 'showers' : 'rain'; text = cat === 'showers' ? T('Pancadas de chuva', 'Regenschauer') : T('Chuva', 'Regen'); }
+      else { cat = showers > (cats.rain || 0) ? 'showers' : 'rain'; text = cat === 'showers' ? T('Pancadas isoladas', 'Vereinzelte Schauer') : T('Chuva fraca', 'Leichter Regen'); }
     } else {
       const sky = ['sun', 'partly', 'cloud', 'fog'].map((c) => [c, cats[c] || 0]);
       const wetish = (cats.drizzle || 0) + (cats.rain || 0) + showers + storms;
@@ -1018,8 +1092,8 @@ function consensus(sources, dates) {
       // The models' forecast sunshine says more about a dry day's sky than their icon votes (~13 h of daylight)
       const sun = median(vals.map((v) => v.sun));
       if (sun != null && cat !== 'fog') cat = sun >= 10 ? 'sun' : sun >= 5 ? 'partly' : 'cloud';
-      text = { sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }[cat];
-      if (pr != null && pr >= 0.2) text += ', garoa possível';
+      text = T({ sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }, { sun: 'Sonnig', partly: 'Sonne und Wolken', cloud: 'Bewölkt', fog: 'Nebel' })[cat];
+      if (pr != null && pr >= 0.2) text += T(', garoa possível', ', Nieselregen möglich');
     }
     return {
       date, n: vals.length, cat, text,
@@ -1035,21 +1109,21 @@ function renderDays(cons, ens) {
     const { wd, dm } = dayLabel(c.date, i);
     const e = ens[c.date];
     const prob = e && e.total ? Math.round(e.wet / e.total * 100) : null;
-    const rainTxt = prob != null ? `${prob}% de chance` : `${c.wetSources} de ${c.prN} fontes`;
+    const rainTxt = prob != null ? T(`${prob}% de chance`, `${prob} % Wahrscheinlichkeit`) : T(`${c.wetSources} de ${c.prN} fontes`, `${c.wetSources} von ${c.prN} Quellen`);
     const pct = prob != null ? prob : (c.prN ? Math.round(c.wetSources / c.prN * 100) : 0);
     // Rain agreement: how lopsided the wet/dry split is (ensemble scenarios, or sources without them)
     const split = prob != null || c.prN ? Math.max(pct, 100 - pct) : null;
     const conf = split == null ? ''
-      : split >= 80 ? '<span class="pill high">chuva: acordo alto</span>'
-      : split >= 65 ? '<span class="pill mid">chuva: acordo médio</span>'
-      : '<span class="pill low">chuva: incerta</span>';
+      : split >= 80 ? `<span class="pill high">${T('chuva: acordo alto', 'Regen: hohe Einigkeit')}</span>`
+      : split >= 65 ? `<span class="pill mid">${T('chuva: acordo médio', 'Regen: mittlere Einigkeit')}</span>`
+      : `<span class="pill low">${T('chuva: incerta', 'Regen: unsicher')}</span>`;
     return `<div class="day">
       <div class="when"><b>${wd}</b><span class="num">${dm}</span></div>
       ${icon(c.cat)}
-      <div class="cond">${esc(c.text)}<small>${c.n} fontes</small></div>
+      <div class="cond">${esc(c.text)}<small>${c.n} ${T('fontes', 'Quellen')}</small></div>
       <div class="temps">
-        <div class="tv" title="Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
-        ${c.sun != null ? `<div class="sun" title="Mediana de ${c.sunN} modelos">${fmt(c.sun)} h de sol</div>` : ''}
+        <div class="tv" title="${T(`Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°`, `Min. ${fmt(c.minLo)}° bis ${fmt(c.minHi)}° · Max. ${fmt(c.maxLo)}° bis ${fmt(c.maxHi)}°`)}"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
+        ${c.sun != null ? `<div class="sun" title="${T(`Mediana de ${c.sunN} modelos`, `Median von ${c.sunN} Modellen`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
       </div>
       <div class="rain"><span class="mm">${fmt(c.pr, 1)} mm</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
       <div class="agree">${conf}</div>
@@ -1058,14 +1132,14 @@ function renderDays(cons, ens) {
 }
 
 function renderTable(sources, cons, dates) {
-  const head = `<thead><tr><th class="srcname">Fonte</th>${dates.map((d, i) => { const { wd, dm } = dayLabel(d, i); return `<th>${wd}<br><span class="num" style="font-weight:400">${dm}</span></th>`; }).join('')}</tr></thead>`;
+  const head = `<thead><tr><th class="srcname">${T('Fonte', 'Quelle')}</th>${dates.map((d, i) => { const { wd, dm } = dayLabel(d, i); return `<th>${wd}<br><span class="num" style="font-weight:400">${dm}</span></th>`; }).join('')}</tr></thead>`;
   const cell = (v, c) => {
     if (!v) return '<td class="na">–</td>';
     const off = c.max != null && Math.abs(v.max - c.max) >= 3 || (v.min != null && c.min != null && Math.abs(v.min - c.min) >= 3);
     return `<td class="${off ? 'off' : ''}" title="${esc(v.text || '')}"><span class="mx">${fmt(v.max)}</span> / <span class="mn">${fmt(v.min)}</span>${v.pr != null ? `<span class="pr">${fmt(v.pr, 1)} mm</span>` : ''}</td>`;
   };
   const rows = sources.map((s) => `<tr><th class="srcname">${esc(s.name)}<small>${esc(s.org)}</small></th>${dates.map((d, i) => cell(s.days[d], cons[i])).join('')}</tr>`).join('');
-  const med = `<tr class="median"><th class="srcname">Mediana<small>${sources.length} fontes</small></th>${cons.map((c) => `<td><span class="mx">${fmt(c.max)}</span> / <span class="mn">${fmt(c.min)}</span><span class="pr">${fmt(c.pr, 1)} mm</span></td>`).join('')}</tr>`;
+  const med = `<tr class="median"><th class="srcname">${T('Mediana', 'Median')}<small>${sources.length} ${T('fontes', 'Quellen')}</small></th>${cons.map((c) => `<td><span class="mx">${fmt(c.max)}</span> / <span class="mn">${fmt(c.min)}</span><span class="pr">${fmt(c.pr, 1)} mm</span></td>`).join('')}</tr>`;
   $('table').innerHTML = head + '<tbody>' + med + rows + '</tbody>';
 }
 
@@ -1077,7 +1151,7 @@ function renderCharts(sources) {
   const col = (n) => css.getPropertyValue(n).trim();
   const start = new Date(); start.setMinutes(0, 0, 0);
   const keys = Array.from({ length: 72 }, (_, i) => localHourKey(new Date(start.getTime() + i * 3600e3)));
-  const labels = keys.map((k) => { const d = new Date(k.slice(0, 10) + 'T12:00:00Z'); const h = k.slice(11, 13); return h === '00' ? `${WEEKDAYS[d.getUTCDay()]} ${h}h` : `${h}h`; });
+  const labels = keys.map((k) => { const d = new Date(k.slice(0, 10) + 'T12:00:00Z'); const h = k.slice(11, 13); return h === '00' ? `${WEEKDAYS[d.getUTCDay()]} ${h}h` : `${h}h`; }); // "15h" is clear enough in both languages
   const withHourly = sources.filter((s) => keys.some((k) => s.hourly[k]));
   const palette = ['#4c8c74', '#7aa7c7', '#c78b5a', '#9b7fc4', '#c46b7f', '#6fae5a', '#c9a640', '#5ab3b0', '#8a8f99', '#b06f4a', '#4f6fb3'];
   const tMed = keys.map((k) => median(withHourly.map((s) => s.hourly[k]?.t)));
@@ -1089,7 +1163,7 @@ function renderCharts(sources) {
     type: 'line',
     data: { labels, datasets: [
       ...withHourly.map((s, i) => ({ label: s.name, data: keys.map((k) => s.hourly[k]?.t ?? null), borderColor: palette[i % palette.length] + '99', borderWidth: 1.2, pointRadius: 0, tension: .3, spanGaps: false })),
-      { label: 'Mediana', data: tMed, borderColor: col('--ink'), borderWidth: 3, pointRadius: 0, tension: .3 },
+      { label: T('Mediana', 'Median'), data: tMed, borderColor: col('--ink'), borderWidth: 3, pointRadius: 0, tension: .3 },
     ] },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
       plugins: { legend: { position: 'bottom', labels: { color: col('--muted'), boxWidth: 12, font: { size: 11 } } },
@@ -1099,8 +1173,8 @@ function renderCharts(sources) {
   charts.push(new Chart($('c-rain'), {
     type: 'bar',
     data: { labels, datasets: [
-      { label: 'Máximo entre modelos', data: pMax, backgroundColor: col('--rain-soft'), grouped: false, order: 2 },
-      { type: 'line', label: 'Mediana', data: pMed, borderColor: col('--rain'), backgroundColor: col('--rain'), borderWidth: 2.5, pointRadius: 0, tension: 0.3, order: 1 },
+      { label: T('Máximo entre modelos', 'Maximum der Modelle'), data: pMax, backgroundColor: col('--rain-soft'), grouped: false, order: 2 },
+      { type: 'line', label: T('Mediana', 'Median'), data: pMed, borderColor: col('--rain'), backgroundColor: col('--rain'), borderWidth: 2.5, pointRadius: 0, tension: 0.3, order: 1 },
     ] },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
       plugins: { legend: { position: 'bottom', labels: { color: col('--muted'), boxWidth: 12, font: { size: 11 } } },
@@ -1112,9 +1186,9 @@ function renderCharts(sources) {
 // ---------- main ----------
 let loading = false, lastLoad = 0, lastSources = [];
 async function loadAll() {
-  if (loading) return; loading = true; $('refresh').disabled = true; $('updated').textContent = 'A atualizar…';
+  if (loading) return; loading = true; $('refresh').disabled = true; $('updated').textContent = T('A atualizar…', 'Wird aktualisiert…');
   const st = {}; renderStatus(st);
-  const track = (k, p) => p.then((v) => { st[k] = 'ok'; renderStatus(st); return v; }, (e) => { st[k] = e.name === 'AbortError' ? 'tempo esgotado' : e.message; renderStatus(st); return null; });
+  const track = (k, p) => p.then((v) => { st[k] = 'ok'; renderStatus(st); return v; }, (e) => { st[k] = e.name === 'AbortError' ? T('tempo esgotado', 'Zeitüberschreitung') : e.message; renderStatus(st); return null; });
   // The camera assessment can take several seconds, so it renders on its own without holding up the forecast
   track('cam', loadCamera()).then(renderCamera);
   const [om, cur, ens, metno, wttr, wo, stats] = await Promise.all([
@@ -1137,15 +1211,16 @@ async function loadAll() {
     renderCharts(sources);
     lastSources = sources;
   } else {
-    $('days').innerHTML = '<p class="err" style="padding:16px">Nenhuma fonte respondeu. Verifique a ligação à internet e carregue em Atualizar.</p>';
+    $('days').innerHTML = `<p class="err" style="padding:16px">${T('Nenhuma fonte respondeu. Verifique a ligação à internet e carregue em Atualizar.', 'Keine Quelle hat geantwortet. Bitte Internetverbindung prüfen und auf Aktualisieren klicken.')}</p>`;
   }
   const yr = $('yr-img'); yr.src = yr.src.split('?')[0] + '?t=' + Date.now();
   lastLoad = Date.now(); loading = false; $('refresh').disabled = false;
-  $('updated').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  $('updated').textContent = T('Atualizado às ', 'Aktualisiert um ') + new Date().toLocaleTimeString(LOCALE, { timeZone: LOC.tz, hour: '2-digit', minute: '2-digit' });
 }
 
+applyStaticLang();
 document.querySelectorAll('details.fold').forEach((d) => d.addEventListener('toggle', () => {
-  d.querySelector('.hint').textContent = d.open ? 'Ocultar' : 'Mostrar';
+  d.querySelector('.hint').textContent = d.open ? T('Ocultar', 'Ausblenden') : T('Mostrar', 'Anzeigen');
 }));
 $('refresh').addEventListener('click', loadAll);
 setInterval(loadAll, 30 * 60e3);

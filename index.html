@@ -140,8 +140,16 @@ section { min-width: 0; }
 
 /* Consenso */
 .days { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.day { display: grid; grid-template-columns: 92px 34px minmax(110px, 1fr) 96px 130px 150px; gap: 12px; align-items: center;
+.day { display: grid; grid-template-columns: 82px 32px minmax(110px, 1fr) 208px 92px 124px 150px; gap: 12px; align-items: center;
   padding: 10px 16px; border-bottom: 1px solid var(--line); }
+/* madrugada, manhã, tarde, noite */
+.periods { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.pd { display: grid; justify-items: center; gap: 1px; padding: 3px 0 4px; border-radius: 6px; background: var(--surface-2); min-width: 0; }
+.pd.wet { background: var(--rain-soft); }
+.pd.past { opacity: .35; }
+.pd .pl { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.pd svg { width: 20px; height: 20px; color: var(--accent); }
+.pd .pc { font: 600 11px var(--f-data); color: var(--rain); }
 .day:last-child { border-bottom: 0; }
 .day .when b { display: block; font-weight: 700; }
 .day .when span { color: var(--muted); font-size: 12.5px; }
@@ -237,10 +245,15 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 @media (max-width: 820px) {
   .now { grid-template-columns: minmax(0, 1fr); }
-  .day { grid-template-columns: 74px 28px minmax(0, 1fr) 76px; grid-template-areas: "when ic cond temps" "rain rain agree agree"; row-gap: 6px; }
+}
+/* The day rows need more width than the rest of the page before they fit on one line */
+@media (max-width: 1040px) {
+  .day { grid-template-columns: 70px 28px minmax(0, 1fr) max-content; grid-template-areas: "when ic cond temps" "per per per per" "rain rain agree agree"; row-gap: 8px; column-gap: 10px; }
   .day .temps { grid-area: temps; justify-items: end; }
   .day .temps .tv { font-size: 15px; }
+  .day .temps .sun { font-size: 12.5px; }
   .day .when { grid-area: when; } .day svg.ic { grid-area: ic; } .day .cond { grid-area: cond; }
+  .day .periods { grid-area: per; }
   .day .rain { grid-area: rain; } .day .agree { grid-area: agree; align-self: end; justify-self: end; }
 }
 @media (prefers-reduced-motion: no-preference) { .rain .pbar i { transition: all .4s ease; } }
@@ -288,7 +301,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2 data-de="Nächste 10 Tage: Konsens">Próximos 10 dias: consenso</h2>
-  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Sonnenstunden: Median der Modelle, die sie berechnen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (Tage mit 1 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind.">Mínima e máxima: mediana de todas as fontes. Horas de sol: mediana dos modelos que as calculam. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não.</p>
+  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Sonnenstunden: Median der Modelle, die sie berechnen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (Tage mit 1 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Horas de sol: mediana dos modelos que as calculam. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
   <div class="days" id="days"></div>
 </section>
 
@@ -494,6 +507,8 @@ const ICONS = {
   showers: '<circle cx="11" cy="9" r="4" fill="currentColor" opacity=".55"/><path d="M9 19h14a5 5 0 0 0 0-10 7 7 0 0 0-13 2 4 4 0 0 0-1 8z" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 23l-1.5 5M19 23l-1.5 5"/></g>',
   storm: '<path d="M8 17h15a5 5 0 0 0 0-10 7 7 0 0 0-14 2 4 4 0 0 0-1 8z" fill="currentColor"/><path d="M17 18l-5 7h4l-2 6 6-8h-4l2-5z" fill="currentColor"/>',
   snow: '<path d="M8 18h15a5 5 0 0 0 0-10 7 7 0 0 0-14 2 4 4 0 0 0-1 8z" fill="currentColor"/><g fill="currentColor"><circle cx="11" cy="24" r="1.6"/><circle cx="16" cy="27" r="1.6"/><circle cx="21" cy="24" r="1.6"/></g>',
+  moon: '<path d="M19 5a11 11 0 1 0 8 18.5A9 9 0 0 1 19 5z" fill="currentColor"/>',
+  moonpartly: '<path d="M13 4a7 7 0 1 0 6.5 10.5A6 6 0 0 1 13 4z" fill="currentColor" opacity=".55"/><path d="M10 25h13a5 5 0 0 0 0-10 7 7 0 0 0-13 1.5A4.3 4.3 0 0 0 10 25z" fill="currentColor"/>',
 };
 const icon = (cat, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 32 32" aria-hidden="true">${ICONS[cat] || ICONS.cloud}</svg>`;
 // Small line icons for the "Agora" chips
@@ -512,7 +527,7 @@ async function loadOpenMeteoModels() {
   const q = new URLSearchParams({
     latitude: LOC.lat, longitude: LOC.lon, timezone: LOC.tz, forecast_days: DAYS,
     daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code,sunshine_duration',
-    hourly: 'temperature_2m,precipitation',
+    hourly: 'temperature_2m,precipitation,cloud_cover',
     models: OM_MODELS.map((m) => m.id).join(','),
   });
   const d = await fetchWithTimeout('https://api.open-meteo.com/v1/forecast?' + q);
@@ -528,7 +543,7 @@ async function loadOpenMeteoModels() {
     });
     d.hourly.time.forEach((t, i) => {
       const v = d.hourly[`temperature_2m_${m.id}`]?.[i];
-      if (v != null) src.hourly[t] = { t: v, p: d.hourly[`precipitation_${m.id}`]?.[i] };
+      if (v != null) src.hourly[t] = { t: v, p: d.hourly[`precipitation_${m.id}`]?.[i], c: d.hourly[`cloud_cover_${m.id}`]?.[i] };
     });
     return src;
   }).filter((s) => Object.keys(s.days).length);
@@ -549,24 +564,36 @@ async function loadEnsemble() {
   const q = new URLSearchParams({ latitude: LOC.lat, longitude: LOC.lon, timezone: LOC.tz, forecast_days: DAYS, hourly: 'precipitation', models: 'ecmwf_ifs025,gfs025' });
   const d = await fetchWithTimeout('https://ensemble-api.open-meteo.com/v1/ensemble?' + q, 30000);
   const keys = Object.keys(d.hourly).filter((k) => k.startsWith('precipitation'));
-  const perDay = {}; // date -> {wet, total}: members with 1 mm or more that day
+  const nowKey = localHourKey(new Date()), today = nowKey.slice(0, 10);
+  const perDay = {}; // date -> {wet, total}: members with 1 mm or more that day (today: in the hours still ahead)
   const perHour = {}; // 'YYYY-MM-DDTHH:00' -> {wet, total}: members with 0.2 mm or more that hour
+  const perPeriod = {}; // date -> 4 x {wet, total}: members with 0.5 mm or more in 0-6h, 6-12h, 12-18h, 18-24h
   keys.forEach((k) => {
-    const sums = {}, counts = {};
+    const sums = {}, counts = {}, psums = {};
     d.hourly[k].forEach((v, i) => {
       if (v == null) return;
       const key = d.hourly.time[i], date = key.slice(0, 10);
-      sums[date] = (sums[date] || 0) + v; counts[date] = (counts[date] || 0) + 1;
+      // Rain that already fell earlier today no longer counts for today, for the day or for its periods
+      if (date !== today || key > nowKey) {
+        sums[date] = (sums[date] || 0) + v; counts[date] = (counts[date] || 0) + 1;
+        const ps = (psums[date] ||= [[0, 0], [0, 0], [0, 0], [0, 0]])[Math.floor(+key.slice(11, 13) / 6)];
+        ps[0] += v; ps[1]++;
+      }
       const h = perHour[key] || (perHour[key] = { wet: 0, total: 0 });
       h.total++; if (v >= 0.2) h.wet++;
     });
     Object.keys(sums).forEach((date) => {
-      if (counts[date] < 6) return;
+      if (counts[date] < (date === today ? 1 : 6)) return;
       const e = perDay[date] || (perDay[date] = { wet: 0, total: 0 });
       e.total++; if (sums[date] >= 1) e.wet++;
     });
+    Object.entries(psums).forEach(([date, ps]) => ps.forEach(([sum, n], p) => {
+      if (n < (date === today ? 1 : 3)) return;
+      const e = (perPeriod[date] ||= [0, 1, 2, 3].map(() => ({ wet: 0, total: 0 })))[p];
+      e.total++; if (sum >= 0.5) e.wet++;
+    }));
   });
-  return { perDay, perHour };
+  return { perDay, perHour, perPeriod };
 }
 
 async function loadMetNo() {
@@ -1066,12 +1093,26 @@ function renderNow(cur, sources) {
   $('now-list').innerHTML = rows.join('') || `<div class="now-row"><div class="d">${T('Sem dados.', 'Keine Daten.')}</div></div>`;
 }
 
+// Today counts only the hours still ahead: rain that fell before now no longer says anything about the day
+function restOfToday(sources, date) {
+  const nowKey = localHourKey(new Date());
+  if (date !== nowKey.slice(0, 10)) return null;
+  const ahead = (s) => Object.keys(s.hourly).filter((k) => k.startsWith(date) && k > nowKey);
+  const withHours = sources.filter((s) => ahead(s).length);
+  if (!withHours.length) return null;
+  return {
+    prs: withHours.map((s) => ahead(s).reduce((a, k) => a + (s.hourly[k].p ?? 0), 0)),
+    cloud: median(withHours.flatMap((s) => ahead(s).map((k) => s.hourly[k].c))),
+  };
+}
+
 function consensus(sources, dates) {
   const w = learnedWeights();
   return dates.map((date) => {
     const pairs = sources.map((s) => [s, s.days[date]]).filter(([, v]) => v);
     const vals = pairs.map(([, v]) => v);
-    const maxs = vals.map((v) => v.max), mins = vals.map((v) => v.min), prs = vals.map((v) => v.pr).filter((x) => x != null);
+    const rest = restOfToday(sources, date);
+    const maxs = vals.map((v) => v.max), mins = vals.map((v) => v.min), prs = rest ? rest.prs : vals.map((v) => v.pr).filter((x) => x != null);
     // Once learning is active, max/min are a mean weighted by each model's recent accuracy
     const tmax = w ? weightedMean(pairs.map(([s, v]) => [v.max, w(s)])) : median(maxs);
     const tmin = w ? weightedMean(pairs.map(([s, v]) => [v.min, w(s)])) : median(mins);
@@ -1093,12 +1134,13 @@ function consensus(sources, dates) {
       cat = sky.sort((a, b) => b[1] - a[1])[0][0];
       // The models' forecast sunshine says more about a dry day's sky than their icon votes (~13 h of daylight)
       const sun = median(vals.map((v) => v.sun));
-      if (sun != null && cat !== 'fog') cat = sun >= 10 ? 'sun' : sun >= 5 ? 'partly' : 'cloud';
+      if (rest?.cloud != null && cat !== 'fog') cat = rest.cloud < 30 ? 'sun' : rest.cloud < 70 ? 'partly' : 'cloud'; // today: the sky still ahead
+      else if (sun != null && cat !== 'fog') cat = sun >= 10 ? 'sun' : sun >= 5 ? 'partly' : 'cloud';
       text = T({ sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }, { sun: 'Sonnig', partly: 'Sonne und Wolken', cloud: 'Bewölkt', fog: 'Nebel' })[cat];
       if (pr != null && pr >= 0.2) text += T(', garoa possível', ', Nieselregen möglich');
     }
     return {
-      date, n: vals.length, cat, text,
+      date, n: vals.length, cat, text, rest: !!rest,
       max: tmax, min: tmin, maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
       pr, prHi: maxOf(prs), wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
       sun: median(vals.map((v) => v.sun)), sunN: vals.filter((v) => v.sun != null).length,
@@ -1106,9 +1148,34 @@ function consensus(sources, dates) {
   });
 }
 
-function renderDays(cons, ens) {
+// Madrugada, manhã, tarde e noite: rain chance from the ensembles (0,5 mm or more in the 6 hours), sky from the
+// models' cloud cover; periods already gone today are dimmed
+const PERIOD_NAME = T(['Madrugada', 'Manhã', 'Tarde', 'Noite'], ['Nacht', 'Vormittag', 'Nachmittag', 'Abend']);
+const PERIOD_SHORT = T(['Madrug.', 'Manhã', 'Tarde', 'Noite'], ['Nacht', 'Vorm.', 'Nachm.', 'Abend']);
+function periodsOf(date, sources, ensPeriods) {
+  const nowKey = localHourKey(new Date());
+  const models = sources.filter((s) => s.kind === 'model');
+  return [0, 1, 2, 3].map((p) => {
+    // Today, a period only counts its hours still ahead; one with none left is past
+    const keys = Array.from({ length: 6 }, (_, j) => `${date}T${String(p * 6 + j).padStart(2, '0')}:00`).filter((k) => k > nowKey);
+    const past = !keys.length;
+    const e = ensPeriods?.[p];
+    const withData = models.filter((s) => keys.some((k) => s.hourly[k]));
+    const chance = e?.total >= 20 ? Math.round(e.wet / e.total * 100)
+      : withData.length ? Math.round(withData.filter((s) => keys.reduce((a, k) => a + (s.hourly[k]?.p ?? 0), 0) >= 0.5).length / withData.length * 100) : null;
+    const cloud = median(withData.flatMap((s) => keys.map((k) => s.hourly[k]?.c)));
+    const night = p === 0 || p === 3;
+    const cat = chance != null && chance >= 50 ? 'rain'
+      : cloud == null ? 'cloud' : cloud < 30 ? (night ? 'moon' : 'sun') : cloud < 70 ? (night ? 'moonpartly' : 'partly') : 'cloud';
+    return { p, past, chance, cat };
+  });
+}
+
+function renderDays(cons, ensAll, sources) {
+  const ens = ensAll.perDay || {};
   $('days').innerHTML = cons.map((c, i) => {
     const { wd, dm } = dayLabel(c.date, i);
+    const periods = periodsOf(c.date, sources, ensAll.perPeriod?.[c.date]);
     const e = ens[c.date];
     const prob = e && e.total ? Math.round(e.wet / e.total * 100) : null;
     const rainTxt = prob != null ? T(`${prob}% de chance`, `${prob} % Wahrscheinlichkeit`) : T(`${c.wetSources} de ${c.prN} fontes`, `${c.wetSources} von ${c.prN} Quellen`);
@@ -1122,7 +1189,11 @@ function renderDays(cons, ens) {
     return `<div class="day">
       <div class="when"><b>${wd}</b><span class="num">${dm}</span></div>
       ${icon(c.cat)}
-      <div class="cond">${esc(c.text)}<small>${c.n} ${T('fontes', 'Quellen')}</small></div>
+      <div class="cond">${esc(c.text)}<small>${c.rest ? T('daqui até o fim do dia', 'ab jetzt bis Tagesende') : `${c.n} ${T('fontes', 'Quellen')}`}</small></div>
+      <div class="periods">${periods.map((x) => `
+        <div class="pd${x.past ? ' past' : ''}${!x.past && x.chance >= 50 ? ' wet' : ''}" title="${esc(`${PERIOD_NAME[x.p]} (${x.p * 6}–${x.p * 6 + 6}h)${x.past ? T(' · já passou', ' · vorbei') : x.chance != null ? T(` · ${x.chance}% de chance de chuva`, ` · ${x.chance} % Regenwahrscheinlichkeit`) : ''}`)}">
+          <span class="pl">${PERIOD_SHORT[x.p]}</span>${icon(x.cat, '')}<span class="pc">${x.past || x.chance == null ? '–' : x.chance + '%'}</span>
+        </div>`).join('')}</div>
       <div class="temps">
         <div class="tv" title="${T(`Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°`, `Min. ${fmt(c.minLo)}° bis ${fmt(c.minHi)}° · Max. ${fmt(c.maxLo)}° bis ${fmt(c.maxHi)}°`)}"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
         ${c.sun != null ? `<div class="sun" title="${T(`Mediana de ${c.sunN} modelos`, `Median von ${c.sunN} Modellen`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
@@ -1208,7 +1279,7 @@ async function loadAll() {
   renderNow(cur, [metno, wttr, wo, ...(om || [])].filter(Boolean));
   if (sources.length) {
     const cons = consensus(sources, dates);
-    renderDays(cons, ens?.perDay || {});
+    renderDays(cons, ens || {}, sources);
     renderTable(sources, cons, dates);
     renderCharts(sources);
     lastSources = sources;

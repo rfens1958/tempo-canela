@@ -301,7 +301,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2 data-de="Nächste 10 Tage: Konsens">Próximos 10 dias: consenso</h2>
-  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Sonnenstunden: aus der stündlichen Bewölkung der Modelle zwischen 6 und 18 Uhr geschätzt (Median). Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (Tage mit 1 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Horas de sol: estimadas pela nebulosidade hora a hora de cada modelo, entre 6h e 18h (mediana). A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
+  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Sonnenstunden: zwischen 6 und 18 Uhr aus der Bewölkung der Modelle geschätzt, abzüglich der Zeiträume mit wahrscheinlichem Regen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (Tage mit 1 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Horas de sol: estimadas entre 6h e 18h pela nebulosidade dos modelos, descontando os períodos em que a chuva é provável. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
   <div class="days" id="days"></div>
 </section>
 
@@ -542,12 +542,6 @@ async function loadOpenMeteoModels() {
     d.hourly.time.forEach((t, i) => {
       const v = d.hourly[`temperature_2m_${m.id}`]?.[i];
       if (v != null) src.hourly[t] = { t: v, p: d.hourly[`precipitation_${m.id}`]?.[i], c: d.hourly[`cloud_cover_${m.id}`]?.[i] };
-    });
-    // Sunshine estimated from the model's own hourly cloud cover, 6h to 18h, an hour with rain counting little.
-    // Open-Meteo's sunshine_duration was not usable: coarse models give near 0 or near 12 h whatever the clouds.
-    Object.entries(src.days).forEach(([date, day]) => {
-      const hours = Array.from({ length: 13 }, (_, j) => src.hourly[`${date}T${String(6 + j).padStart(2, '0')}:00`]).filter((h) => h?.c != null);
-      day.sun = hours.length >= 10 ? hours.reduce((a, h) => a + (1 - h.c / 100) * ((h.p ?? 0) >= 0.5 ? 0.3 : 1), 0) * 13 / hours.length : null;
     });
     return src;
   }).filter((s) => Object.keys(s.days).length);
@@ -1110,12 +1104,32 @@ function restOfToday(sources, date) {
   };
 }
 
-function consensus(sources, dates) {
+// Hours of sun from 6h to 18h. Each hour: the models' median clear-sky share (an hour in which a model
+// rains counts little for it), reduced by the ensembles' chance of rain in that period, since a period
+// that very likely rains is mostly overcast even when single models show breaks.
+// (Open-Meteo's own sunshine_duration was not usable: coarse models give near 0 or 12 h whatever the clouds.)
+function sunHours(date, sources, ensPeriods) {
+  const models = sources.filter((s) => s.kind === 'model');
+  let sum = 0, hours = 0;
+  for (let h = 6; h <= 18; h++) {
+    const key = `${date}T${String(h).padStart(2, '0')}:00`;
+    const clear = median(models.map((s) => s.hourly[key]).filter((x) => x?.c != null)
+      .map((x) => (1 - x.c / 100) * ((x.p ?? 0) >= 0.5 ? 0.3 : 1)));
+    if (clear == null) continue;
+    const e = ensPeriods?.[Math.floor(h / 6)];
+    const rain = e?.total >= 20 ? e.wet / e.total : 0;
+    sum += clear * (1 - 0.8 * rain); hours++;
+  }
+  return hours >= 10 ? { sun: sum * 13 / hours, n: models.filter((s) => s.hourly[`${date}T12:00`]?.c != null).length } : null;
+}
+
+function consensus(sources, dates, ensAll = {}) {
   const w = learnedWeights();
   return dates.map((date) => {
     const pairs = sources.map((s) => [s, s.days[date]]).filter(([, v]) => v);
     const vals = pairs.map(([, v]) => v);
     const rest = restOfToday(sources, date);
+    const sunny = sunHours(date, sources, ensAll.perPeriod?.[date]);
     const maxs = vals.map((v) => v.max), mins = vals.map((v) => v.min), prs = rest ? rest.prs : vals.map((v) => v.pr).filter((x) => x != null);
     // Once learning is active, max/min are a mean weighted by each model's recent accuracy
     const tmax = w ? weightedMean(pairs.map(([s, v]) => [v.max, w(s)])) : median(maxs);
@@ -1136,8 +1150,8 @@ function consensus(sources, dates) {
       const wetish = (cats.drizzle || 0) + (cats.rain || 0) + showers + storms;
       sky[2][1] += wetish; // a wet label with under 1 mm reads as a cloudy day
       cat = sky.sort((a, b) => b[1] - a[1])[0][0];
-      // The models' forecast sunshine says more about a dry day's sky than their icon votes (~13 h of daylight)
-      const sun = median(vals.map((v) => v.sun));
+      // The day's hours of sun say more about a dry day's sky than the models' icon votes (~13 h of daylight)
+      const sun = sunny?.sun;
       if (rest?.cloud != null && cat !== 'fog') cat = rest.cloud < 30 ? 'sun' : rest.cloud < 70 ? 'partly' : 'cloud'; // today: the sky still ahead
       else if (sun != null && cat !== 'fog') cat = sun >= 9 ? 'sun' : sun >= 4.5 ? 'partly' : 'cloud'; // same 30 % / 70 % cloud lines as the periods
       text = T({ sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }, { sun: 'Sonnig', partly: 'Sonne und Wolken', cloud: 'Bewölkt', fog: 'Nebel' })[cat];
@@ -1147,7 +1161,7 @@ function consensus(sources, dates) {
       date, n: vals.length, cat, text, rest: !!rest,
       max: tmax, min: tmin, maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
       pr, prHi: maxOf(prs), wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
-      sun: median(vals.map((v) => v.sun)), sunN: vals.filter((v) => v.sun != null).length,
+      sun: sunny?.sun ?? null, sunN: sunny?.n ?? 0,
     };
   });
 }
@@ -1200,7 +1214,7 @@ function renderDays(cons, ensAll, sources) {
         </div>`).join('')}</div>
       <div class="temps">
         <div class="tv" title="${T(`Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°`, `Min. ${fmt(c.minLo)}° bis ${fmt(c.minHi)}° · Max. ${fmt(c.maxLo)}° bis ${fmt(c.maxHi)}°`)}"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
-        ${c.sun != null ? `<div class="sun" title="${T(`Estimativa pela nebulosidade de ${c.sunN} modelos`, `Geschätzt aus der Bewölkung von ${c.sunN} Modellen`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
+        ${c.sun != null ? `<div class="sun" title="${T(`Estimativa pela nebulosidade de ${c.sunN} modelos e pela chance de chuva de cada período`, `Geschätzt aus der Bewölkung von ${c.sunN} Modellen und der Regenwahrscheinlichkeit je Zeitraum`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
       </div>
       <div class="rain"><span class="mm">${fmt(c.pr, 1)} mm</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
       <div class="agree">${conf}</div>
@@ -1282,7 +1296,7 @@ async function loadAll() {
   lastEnsHour = ens?.perHour || {};
   renderNow(cur, [metno, wttr, wo, ...(om || [])].filter(Boolean));
   if (sources.length) {
-    const cons = consensus(sources, dates);
+    const cons = consensus(sources, dates, ens || {});
     renderDays(cons, ens || {}, sources);
     renderTable(sources, cons, dates);
     renderCharts(sources);

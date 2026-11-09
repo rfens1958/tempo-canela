@@ -301,7 +301,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2 data-de="Nächste 10 Tage: Konsens">Próximos 10 dias: consenso</h2>
-  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Sonnenstunden: Median der Modelle, die sie berechnen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (Tage mit 1 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Horas de sol: mediana dos modelos que as calculam. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
+  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Sonnenstunden: aus der stündlichen Bewölkung der Modelle zwischen 6 und 18 Uhr geschätzt (Median). Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (Tage mit 1 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Horas de sol: estimadas pela nebulosidade hora a hora de cada modelo, entre 6h e 18h (mediana). A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
   <div class="days" id="days"></div>
 </section>
 
@@ -526,7 +526,7 @@ const MINI = {
 async function loadOpenMeteoModels() {
   const q = new URLSearchParams({
     latitude: LOC.lat, longitude: LOC.lon, timezone: LOC.tz, forecast_days: DAYS,
-    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code,sunshine_duration',
+    daily: 'temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code',
     hourly: 'temperature_2m,precipitation,cloud_cover',
     models: OM_MODELS.map((m) => m.id).join(','),
   });
@@ -537,13 +537,17 @@ async function loadOpenMeteoModels() {
       const max = d.daily[`temperature_2m_max_${m.id}`]?.[i];
       if (max == null) return;
       const info = wmoInfo(d.daily[`weather_code_${m.id}`]?.[i]);
-      // Sunshine in hours; ECMWF AIFS returns a fixed placeholder (6 h every day), so it is left out
-      const sunS = m.id === 'ecmwf_aifs025_single' ? null : d.daily[`sunshine_duration_${m.id}`]?.[i];
-      src.days[date] = { max, min: d.daily[`temperature_2m_min_${m.id}`]?.[i], pr: d.daily[`precipitation_sum_${m.id}`]?.[i], cat: info.cat, text: info.text, sun: sunS == null ? null : sunS / 3600 };
+      src.days[date] = { max, min: d.daily[`temperature_2m_min_${m.id}`]?.[i], pr: d.daily[`precipitation_sum_${m.id}`]?.[i], cat: info.cat, text: info.text };
     });
     d.hourly.time.forEach((t, i) => {
       const v = d.hourly[`temperature_2m_${m.id}`]?.[i];
       if (v != null) src.hourly[t] = { t: v, p: d.hourly[`precipitation_${m.id}`]?.[i], c: d.hourly[`cloud_cover_${m.id}`]?.[i] };
+    });
+    // Sunshine estimated from the model's own hourly cloud cover, 6h to 18h, an hour with rain counting little.
+    // Open-Meteo's sunshine_duration was not usable: coarse models give near 0 or near 12 h whatever the clouds.
+    Object.entries(src.days).forEach(([date, day]) => {
+      const hours = Array.from({ length: 13 }, (_, j) => src.hourly[`${date}T${String(6 + j).padStart(2, '0')}:00`]).filter((h) => h?.c != null);
+      day.sun = hours.length >= 10 ? hours.reduce((a, h) => a + (1 - h.c / 100) * ((h.p ?? 0) >= 0.5 ? 0.3 : 1), 0) * 13 / hours.length : null;
     });
     return src;
   }).filter((s) => Object.keys(s.days).length);
@@ -1135,7 +1139,7 @@ function consensus(sources, dates) {
       // The models' forecast sunshine says more about a dry day's sky than their icon votes (~13 h of daylight)
       const sun = median(vals.map((v) => v.sun));
       if (rest?.cloud != null && cat !== 'fog') cat = rest.cloud < 30 ? 'sun' : rest.cloud < 70 ? 'partly' : 'cloud'; // today: the sky still ahead
-      else if (sun != null && cat !== 'fog') cat = sun >= 10 ? 'sun' : sun >= 5 ? 'partly' : 'cloud';
+      else if (sun != null && cat !== 'fog') cat = sun >= 9 ? 'sun' : sun >= 4.5 ? 'partly' : 'cloud'; // same 30 % / 70 % cloud lines as the periods
       text = T({ sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }, { sun: 'Sonnig', partly: 'Sonne und Wolken', cloud: 'Bewölkt', fog: 'Nebel' })[cat];
       if (pr != null && pr >= 0.2) text += T(', garoa possível', ', Nieselregen möglich');
     }
@@ -1196,7 +1200,7 @@ function renderDays(cons, ensAll, sources) {
         </div>`).join('')}</div>
       <div class="temps">
         <div class="tv" title="${T(`Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°`, `Min. ${fmt(c.minLo)}° bis ${fmt(c.minHi)}° · Max. ${fmt(c.maxLo)}° bis ${fmt(c.maxHi)}°`)}"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
-        ${c.sun != null ? `<div class="sun" title="${T(`Mediana de ${c.sunN} modelos`, `Median von ${c.sunN} Modellen`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
+        ${c.sun != null ? `<div class="sun" title="${T(`Estimativa pela nebulosidade de ${c.sunN} modelos`, `Geschätzt aus der Bewölkung von ${c.sunN} Modellen`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
       </div>
       <div class="rain"><span class="mm">${fmt(c.pr, 1)} mm</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
       <div class="agree">${conf}</div>

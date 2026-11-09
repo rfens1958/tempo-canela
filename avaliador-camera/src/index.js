@@ -2,8 +2,9 @@
 // de Porto Alegre e o satélite GOES-19, para a página "Tempo em Canela".
 //   GET /      -> avaliação (JSON)
 //   GET /foto  -> a foto que foi avaliada (JPEG)
-// A foto e a avaliação ficam guardadas no KV e só são renovadas 1 hora depois da
-// renovação anterior, por mais vezes que a página seja aberta.
+// A foto e a avaliação ficam guardadas no KV e só são renovadas quando alguém abre a página depois de
+// um novo horário de renovação (0h, 6h, 8h, 10h, 12h, 14h, 16h, 18h e 20h), por mais vezes que a página
+// seja aberta entre dois horários.
 import Anthropic from "@anthropic-ai/sdk";
 import { Buffer } from "node:buffer";
 import { hourly, recordCamera } from "./verify.js";
@@ -14,7 +15,14 @@ const CAM_ID = "130-v3";
 const CAM_NAME = "Parque Mundo a Vapor, Canela";
 const CAM_URL = "https://files.rbt.psi.br/images/camerasdaserra/snapshots/6a875242028a1003e435c252/thumbnail.jpg";
 const KEY_LAST = `last-${CAM_ID}`, KEY_PHOTO = `photo-${CAM_ID}`;
-const RENEW_MS = 60 * 60 * 1000;
+// Horários (hora local de Canela, UTC-3 fixo) a partir dos quais a avaliação pode ser renovada
+const RENEW_HOURS = [0, 6, 8, 10, 12, 14, 16, 18, 20];
+// Start of the renewal slot `now` falls in, e.g. 13:40 -> 12:00 the same day; 03:00 -> 00:00
+function slotStart(now = new Date()) {
+  const local = new Date(now.getTime() - 3 * 3600e3); // UTC-3 wall clock, read with getUTC*
+  const hour = Math.max(...RENEW_HOURS.filter((h) => h <= local.getUTCHours()));
+  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate(), hour + 3));
+}
 // Radar de Porto Alegre (Climatempo): radar_poa_1 é a imagem mais recente; as seguintes são cada vez mais
 // antigas (~3,5 min entre elas), por isso a 9 fica uns 30 min antes da 1.
 const RADAR_URL = (n) => `https://statics.climatempo.com.br/radar_poa/pngs/latest/radar_poa_${n}.png?nocache=${Date.now()}`;
@@ -111,7 +119,7 @@ export default {
     }
 
     const last = await env.CAMERA.get(KEY_LAST, "json");
-    if (last && Date.now() - Date.parse(last.renewed_at) < RENEW_MS) return json(last, 200, request, { "X-Cache": "HIT" });
+    if (last && Date.parse(last.renewed_at) >= slotStart().getTime()) return json(last, 200, request, { "X-Cache": "HIT" });
 
     if (!env.ANTHROPIC_API_KEY) return json({ error: "Falta configurar a chave ANTHROPIC_API_KEY no Worker." }, 503, request);
 

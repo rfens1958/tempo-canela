@@ -304,13 +304,13 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2 data-de="Nächste 10 Tage: Konsens">Próximos 10 dias: consenso</h2>
-  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Sonnenstunden: zwischen 6 und 18 Uhr aus der Bewölkung der Modelle geschätzt, abzüglich der Zeiträume mit wahrscheinlichem Regen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (Tage mit 1 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Horas de sol: estimadas entre 6h e 18h pela nebulosidade dos modelos, descontando os períodos em que a chuva é provável. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (dias com 1 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
+  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Regenmenge: Mittel der Quellen ohne die nasseste und die trockenste, × 1,15 für den Effekt der Serra (globale Modelle unterschätzen den Regen am Steilhang). Sonnenstunden: zwischen 6 und 18 Uhr aus der Bewölkung der Modelle geschätzt, abzüglich der Zeiträume mit wahrscheinlichem Regen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (mindestens eine Stunde mit 0,2 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Quantidade de chuva: média das fontes sem a mais e a menos chuvosa, × 1,15 pelo efeito da serra (os modelos globais subestimam a chuva na encosta). Horas de sol: estimadas entre 6h e 18h pela nebulosidade dos modelos, descontando os períodos em que a chuva é provável. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (alguma hora com 0,2 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
   <div class="days" id="days"></div>
 </section>
 
 <details class="fold" id="fold-table">
   <summary><h2 data-de="Vergleich nach Quelle">Comparação por fonte</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
-  <p class="sub" data-de="Höchst- / Tiefstwert in °C und Tagesniederschlag in mm (heute: nur der noch erwartete). Jedes Modell rechnet unabhängig; weicht eines um 3 °C oder mehr vom Median ab, wird die Zelle hervorgehoben.">Máxima / mínima em °C e chuva do dia em mm (hoje: só a que ainda falta). Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada.</p>
+  <p class="sub" data-de="Höchst- / Tiefstwert in °C und Tagesniederschlag in mm (heute: nur der noch erwartete). Jedes Modell rechnet unabhängig; weicht eines um 3 °C oder mehr vom Median ab, wird die Zelle hervorgehoben. Die Zeile „Konsens“ ist das, was in den 10 Tagen steht: Median der Temperaturen und, beim Regen, Mittel ohne Extremwerte × 1,15.">Máxima / mínima em °C e chuva do dia em mm (hoje: só a que ainda falta). Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada. A linha Consenso é o que aparece nos 10 dias: mediana das temperaturas e, na chuva, média sem os extremos × 1,15.</p>
   <div class="tablebox"><table id="table"></table></div>
   <div class="legend"><span data-de="weicht 3 °C oder mehr vom Median ab">diverge 3 °C ou mais da mediana</span></div>
 </details>
@@ -441,6 +441,17 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = (v, d = 0) => (v == null || Number.isNaN(v)) ? '–' : v.toFixed(d).replace('.', ',').replace(/^-0(,0+)?$/, '0$1');
 const median = (arr) => { const a = arr.filter((x) => x != null && !Number.isNaN(x)).sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+// Rain amount of the day: a trimmed mean (the wettest and the driest source dropped, so a single outlier
+// cannot drag it) times the serra factor. A plain median of daily rain runs low (in Nov/2025–Oct/2026 it summed
+// ~1640 mm against ~1740 trimmed and ~1970 mm of Canela's 30-year average), and the global models also smooth
+// out the escarpment, where moist air lifted up the slope rains more than they see.
+const RAIN_FACTOR = 1.15;
+const trimmedMean = (arr) => {
+  const a = arr.filter((x) => x != null && !Number.isNaN(x)).sort((x, y) => x - y);
+  if (!a.length) return null;
+  const t = a.length >= 5 ? a.slice(1, -1) : a;
+  return t.reduce((s, x) => s + x, 0) / t.length;
+};
 const minOf = (arr) => { const a = arr.filter((x) => x != null); return a.length ? Math.min(...a) : null; };
 const maxOf = (arr) => { const a = arr.filter((x) => x != null); return a.length ? Math.max(...a) : null; };
 const localDate = (d) => d.toLocaleDateString('sv-SE', { timeZone: LOC.tz });
@@ -945,7 +956,7 @@ function renderOutlook() {
         <a href="https://radar-poa-13561874921.us-east1.run.app/" target="_blank" rel="noopener">Radar ↗</a>
         <a href="https://www.star.nesdis.noaa.gov/goes/sector.php?sat=G19&amp;sector=ssa" target="_blank" rel="noopener">${T('Satélite', 'Satellit')} ↗</a></p>` : ''}
     ${items.length ? `<ul class="ol-events">${items.join('')}</ul>` : ''}
-    <p class="detail">${T(`Previsão ${label}.`, `Vorhersage ${label}.`)} ${source}; ${T(`temperatura: mediana dos ${models.length} modelos.`, `Temperatur: Median der ${models.length} Modelle.`)}${adjNote}</p>`;
+    <p class="detail">${T(`Previsão ${label}.`, `Vorhersage ${label}.`)} ${source}; ${T('temperatura: mediana das fontes com dados por hora, a mesma linha do gráfico de 72 horas.', 'Temperatur: Median der Quellen mit Stundenwerten, dieselbe Linie wie im 72-Stunden-Diagramm.')}${adjNote}</p>`;
 }
 
 // ---------- autoverificação ----------
@@ -1192,7 +1203,7 @@ function consensus(sources, dates, ensAll = {}) {
     // Whether and when it rains comes from the same ensemble chances as the four periods and the badge, so the
     // day's words never contradict them; the models' median amount only sets how strong the rain is, and their
     // own labels only tell showers from steady rain and spot thunderstorms.
-    const pr = median(prs);
+    const prRaw = trimmedMean(prs), pr = prRaw == null ? null : prRaw * RAIN_FACTOR;
     const cats = {}; vals.forEach((v) => { if (v.cat) cats[v.cat] = (cats[v.cat] || 0) + 1; });
     const storms = cats.storm || 0, showers = cats.showers || 0;
     const eDay = ensAll.perDay?.[date];
@@ -1231,7 +1242,7 @@ function consensus(sources, dates, ensAll = {}) {
     return {
       date, n: vals.length, cat, text, rest: !!rest,
       max: tmax, min: tmin, maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
-      pr, prHi: maxOf(prs), wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
+      pr, prLo: minOf(prs), prHi: maxOf(prs), wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
       sun: sunny?.sun ?? null, sunN: sunny?.n ?? 0,
     };
   });
@@ -1287,7 +1298,7 @@ function renderDays(cons, ensAll, sources) {
         <div class="tv" title="${T(`Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°`, `Min. ${fmt(c.minLo)}° bis ${fmt(c.minHi)}° · Max. ${fmt(c.maxLo)}° bis ${fmt(c.maxHi)}°`)}"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
         ${c.sun != null ? `<div class="sun" title="${T(`Estimativa pela nebulosidade de ${c.sunN} modelos e pela chance de chuva de cada período${c.rest ? ' · só as horas de luz que faltam hoje' : ''}`, `Geschätzt aus der Bewölkung von ${c.sunN} Modellen und der Regenwahrscheinlichkeit je Zeitraum${c.rest ? ' · nur die heute noch verbleibenden hellen Stunden' : ''}`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
       </div>
-      <div class="rain"><span class="mm">${fmt(c.pr, 1)} mm</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
+      <div class="rain"><span class="mm" title="${T(`Média de ${c.prN} fontes sem a mais e a menos chuvosa, × ${fmt(RAIN_FACTOR, 2)} pelo efeito da serra · fontes de ${fmt(c.prLo, 1)} a ${fmt(c.prHi, 1)} mm`, `Mittel aus ${c.prN} Quellen ohne die nasseste und trockenste, × ${fmt(RAIN_FACTOR, 2)} für den Effekt der Serra · Quellen ${fmt(c.prLo, 1)} bis ${fmt(c.prHi, 1)} mm`)}">${fmt(c.pr, 1)} mm</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
       <div class="agree">${conf}</div>
     </div>`;
   }).join('');
@@ -1315,7 +1326,7 @@ function renderTable(sources, cons, dates) {
   };
   const rows = sources.map((s) => `<tr><th class="srcname">${esc(s.name)}<small>${esc(s.org)}</small></th>${dates.map((d, i) => cell(s, d, cons[i])).join('')}</tr>`).join('');
   // Once the self-checking is active, max/min are a mean weighted by each model's accuracy, not a plain median
-  const med = `<tr class="median"><th class="srcname">${learnedWeights() ? T('Consenso', 'Konsens') : T('Mediana', 'Median')}<small>${sources.length} ${T('fontes', 'Quellen')}</small></th>${cons.map((c) => `<td><span class="mx">${fmt(c.max)}</span> / <span class="mn">${fmt(c.min)}</span><span class="pr">${fmt(c.pr, 1)} mm</span></td>`).join('')}</tr>`;
+  const med = `<tr class="median"><th class="srcname">${T('Consenso', 'Konsens')}<small>${sources.length} ${T('fontes', 'Quellen')}</small></th>${cons.map((c) => `<td><span class="mx">${fmt(c.max)}</span> / <span class="mn">${fmt(c.min)}</span><span class="pr">${fmt(c.pr, 1)} mm</span></td>`).join('')}</tr>`;
   $('table').innerHTML = head + '<tbody>' + med + rows + '</tbody>';
 }
 

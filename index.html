@@ -306,7 +306,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2 data-de="Nächste 10 Tage: Konsens">Próximos 10 dias: consenso</h2>
-  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Regenmenge: Mittel der Quellen ohne die nasseste und die trockenste (geprüft an der INMET-Station Canela); „bis X mm“ zeigt die nasseste Quelle, wenn sie viel mehr erwartet – so kündigten sich die Starkregen an. Sonnenstunden: zwischen 6 und 18 Uhr aus der Bewölkung der Modelle geschätzt, abzüglich der Zeiträume mit wahrscheinlichem Regen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (mindestens eine Stunde mit 0,2 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Quantidade de chuva: média das fontes sem a mais e a menos chuvosa (conferida com a estação do INMET em Canela); "até X mm" mostra a fonte mais chuvosa quando ela prevê bem mais, que foi como os temporais apareceram. Horas de sol: estimadas entre 6h e 18h pela nebulosidade dos modelos, descontando os períodos em que a chuva é provável. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (alguma hora com 0,2 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
+  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Regenmenge: Mittel der Quellen ohne die nasseste und die trockenste (geprüft an der INMET-Station Canela); „falls Regen ~X mm“ ist der Median der Quellen, die Regen erwarten – so viel bringt ein Schauer, wenn er kommt, und danach richten sich „leicht“ (unter 5 mm) und „stark“ (ab 15 mm); „bis X mm“ zeigt die nasseste Quelle, wenn sie viel mehr erwartet – so kündigten sich die Starkregen an. Sonnenstunden: zwischen 6 und 18 Uhr aus der Bewölkung der Modelle geschätzt, abzüglich der Zeiträume mit wahrscheinlichem Regen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (mindestens eine Stunde mit 0,2 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Quantidade de chuva: média das fontes sem a mais e a menos chuvosa (conferida com a estação do INMET em Canela); "se chover ~X mm" é a mediana das fontes que preveem chuva, ou seja, quanto uma pancada traz quando vem, e é por ela que o texto diz "fraca" (menos de 5 mm) ou "forte" (15 mm ou mais); "até X mm" mostra a fonte mais chuvosa quando ela prevê bem mais, que foi como os temporais apareceram. Horas de sol: estimadas entre 6h e 18h pela nebulosidade dos modelos, descontando os períodos em que a chuva é provável. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (alguma hora com 0,2 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
   <div class="days" id="days"></div>
 </section>
 
@@ -1213,18 +1213,29 @@ function consensus(sources, dates, ensAll = {}) {
     const showery = showers > (cats.rain || 0);
     const stormy = storms >= Math.max(2, vals.length / 4);
     const WHEN = T(['de madrugada', 'de manhã', 'à tarde', 'à noite'], ['in der Nacht', 'am Vormittag', 'am Nachmittag', 'am Abend']);
+    // "Se chover": how much the sources that do expect rain (1 mm or more) give. The mean above also carries the
+    // chance that the shower misses Canela; this is what a shower brings when it comes. Checked against the INMET
+    // station (May–Nov/2026): on days it rained it matched what fell (1.9 vs 1.9 mm, 2.4 vs 2.5, 9.4 vs 9.9 by how
+    // many sources expected rain), so it also sets the words: under 5 mm light, 15 mm or more heavy.
+    const ifRain = median(prs.filter((p) => p >= 1));
+    const amt = ifRain ?? pr ?? 0;
+    const LIGHT = amt < 5, HEAVY = amt >= 15;
+    const showerWord = HEAVY ? T('Pancadas fortes', 'Starke Schauer') : LIGHT ? T('Pancadas fracas', 'Leichte Schauer') : T('Pancadas', 'Schauer');
+    const rainWord = HEAVY ? T('Chuva forte', 'Starker Regen') : LIGHT ? T('Chuva fraca', 'Leichter Regen') : T('Chuva', 'Regen');
     let cat, text;
     if (wetPeriods.length >= 3) {
       cat = stormy ? 'storm' : showery ? 'showers' : 'rain';
-      text = stormy ? T('Chuva com trovoadas', 'Regen mit Gewittern') : pr >= 15 ? T('Chuva forte', 'Starker Regen')
-        : pr >= 5 ? (showery ? T('Pancadas de chuva', 'Regenschauer') : T('Chuva', 'Regen')) : (showery ? T('Pancadas fracas', 'Leichte Schauer') : T('Chuva fraca', 'Leichter Regen'));
+      text = stormy ? T('Chuva com trovoadas', 'Regen mit Gewittern') : HEAVY ? rainWord
+        : showery ? (LIGHT ? showerWord : T('Pancadas de chuva', 'Regenschauer')) : rainWord;
     } else if (wetPeriods.length) {
       cat = stormy ? 'storm' : showery ? 'showers' : 'rain';
-      const noun = stormy ? T('Trovoadas', 'Gewitter') : showery ? T('Pancadas', 'Schauer') : T('Chuva', 'Regen');
+      const noun = stormy ? T('Trovoadas', 'Gewitter') : showery ? showerWord : rainWord;
       text = `${noun} ${wetPeriods.map((p) => WHEN[p]).join(T(' e ', ' und '))}`;
     } else if (dayChance != null && dayChance >= 40) {
       cat = 'showers';
-      text = showery || stormy ? T('Pancadas possíveis', 'Schauer möglich') : T('Chuva possível', 'Regen möglich');
+      text = showery || stormy
+        ? (HEAVY ? T('Pancadas fortes possíveis', 'Starke Schauer möglich') : LIGHT ? T('Pancadas fracas possíveis', 'Leichte Schauer möglich') : T('Pancadas possíveis', 'Schauer möglich'))
+        : (HEAVY ? T('Chuva forte possível', 'Starker Regen möglich') : LIGHT ? T('Chuva fraca possível', 'Leichter Regen möglich') : T('Chuva possível', 'Regen möglich'));
     } else if (dayChance == null && pr != null && pr >= 1) {
       cat = showery ? 'showers' : 'rain'; // no ensemble data: fall back to the models' amount
       text = showery ? T('Pancadas isoladas', 'Vereinzelte Schauer') : T('Chuva fraca', 'Leichter Regen');
@@ -1246,7 +1257,10 @@ function consensus(sources, dates, ensAll = {}) {
       pr, prLo: minOf(prs), prHi: maxOf(prs),
       // "até X mm": the wettest source expects far more (≥15 mm, 1.5× and 10 mm above the mean). In May–Nov/2026
       // this showed on 26 of 157 days and flagged 6 of the 7 days that brought 30 mm or more.
-      upTo: prs.length >= 3 && pr != null && maxOf(prs) >= 15 && maxOf(prs) >= 1.5 * pr && maxOf(prs) >= pr + 10, wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
+      upTo: prs.length >= 3 && pr != null && maxOf(prs) >= 15 && maxOf(prs) >= 1.5 * pr && maxOf(prs) >= pr + 10,
+      // shown when rain is possible but not near certain, and a shower would bring clearly more than the mean
+      ifRain: dayChance != null && dayChance >= 20 && dayChance < 80 && ifRain != null && ifRain >= (pr ?? 0) + 0.3 ? ifRain : null,
+      ifRainN: prs.filter((p) => p >= 1).length, wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
       sun: sunny?.sun ?? null, sunN: sunny?.n ?? 0,
     };
   });
@@ -1302,7 +1316,7 @@ function renderDays(cons, ensAll, sources) {
         <div class="tv" title="${T(`Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°`, `Min. ${fmt(c.minLo)}° bis ${fmt(c.minHi)}° · Max. ${fmt(c.maxLo)}° bis ${fmt(c.maxHi)}°`)}"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
         ${c.sun != null ? `<div class="sun" title="${T(`Estimativa pela nebulosidade de ${c.sunN} modelos e pela chance de chuva de cada período${c.rest ? ' · só as horas de luz que faltam hoje' : ''}`, `Geschätzt aus der Bewölkung von ${c.sunN} Modellen und der Regenwahrscheinlichkeit je Zeitraum${c.rest ? ' · nur die heute noch verbleibenden hellen Stunden' : ''}`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
       </div>
-      <div class="rain"><span class="mm" title="${T(`Média de ${c.prN} fontes sem a mais e a menos chuvosa · fontes de ${fmt(c.prLo, 1)} a ${fmt(c.prHi, 1)} mm`, `Mittel aus ${c.prN} Quellen ohne die nasseste und trockenste · Quellen ${fmt(c.prLo, 1)} bis ${fmt(c.prHi, 1)} mm`)}">${fmt(c.pr, 1)} mm${c.upTo ? `<span class="upto">${T('até', 'bis')} ${fmt(c.prHi)} mm</span>` : ''}</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
+      <div class="rain"><span class="mm" title="${T(`Média de ${c.prN} fontes sem a mais e a menos chuvosa · fontes de ${fmt(c.prLo, 1)} a ${fmt(c.prHi, 1)} mm`, `Mittel aus ${c.prN} Quellen ohne die nasseste und trockenste · Quellen ${fmt(c.prLo, 1)} bis ${fmt(c.prHi, 1)} mm`)}">${fmt(c.pr, 1)} mm${c.ifRain != null ? `<span class="upto" title="${T(`Mediana das ${c.ifRainN} fontes que preveem 1 mm ou mais: quanto uma pancada traz quando passa por Canela`, `Median der ${c.ifRainN} Quellen mit 1 mm oder mehr: so viel bringt ein Schauer, wenn er Canela trifft`)}">${T('se chover', 'falls Regen')} ~${fmt(c.ifRain, 1)} mm</span>` : ''}${c.upTo ? `<span class="upto">${T('até', 'bis')} ${fmt(c.prHi)} mm</span>` : ''}</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
       <div class="agree">${conf}</div>
     </div>`;
   }).join('');

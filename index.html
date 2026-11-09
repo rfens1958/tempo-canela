@@ -328,7 +328,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <details class="fold" id="fold-stats">
   <summary><h2 data-de="Trefferquote">Índice de acertos</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
-  <p class="sub" data-de="Die Seite überprüft sich selbst. Stündlich speichert sie, was die 10 Modelle und die Ensembles vorhersagten; am nächsten Tag vergleicht sie Regen, Temperatur und Bewölkung mit den Messungen am Flughafen Caxias do Sul (METAR, 40 km von Canela) und mit der Kamera in Canela. Letzte 30 Tage. Jede daraus folgende Änderung wird unten mit Datum angezeigt.">A página confere-se sozinha. De hora a hora guarda o que os 10 modelos e os ensembles previam; no dia seguinte compara a chuva, a temperatura e o céu com o que aconteceu no aeroporto de Caxias do Sul (METAR, a 40 km de Canela) e com a câmera de Canela. Últimos 30 dias. Cada mudança que isso provoca aparece em baixo, com a data.</p>
+  <p class="sub" data-de="Die Seite überprüft sich selbst. Stündlich speichert sie, was die 10 Modelle und die Ensembles vorhersagten; danach vergleicht sie Regen, Temperatur und Sonne mit den Messungen der INMET-Station in Canela (täglich vom Computer des Betreibers übertragen) und, als Reserve, mit dem Flughafen Caxias do Sul (METAR, 40 km entfernt) und der Kamera in Canela. Die Korrekturen stützen sich auf die Station in Canela, sobald sie 14 Tage im Zeitraum abdeckt. Letzte 30 Tage. Jede daraus folgende Änderung wird unten mit Datum angezeigt.">A página confere-se sozinha. De hora a hora guarda o que os 10 modelos e os ensembles previam; depois compara a chuva, a temperatura e o sol com o que mediu a estação do INMET em Canela (enviada diariamente pelo computador do responsável) e, de reserva, com o aeroporto de Caxias do Sul (METAR, a 40 km) e a câmera de Canela. As correções usam a estação de Canela quando ela cobre 14 dias do período. Últimos 30 dias. Cada mudança que isso provoca aparece em baixo, com a data.</p>
   <div id="stats" class="stats"></div>
 </details>
 
@@ -1010,7 +1010,9 @@ function renderStats() {
     return;
   }
   const L = S.learning, left = Math.max(0, L.minDays - S.days);
-  const ref = S.sites.sbcx, can = S.sites.canela;
+  // Reference for the tables: the INMET station in Canela once the corrections use it, else the Caxias do Sul METAR
+  const src = L.source && S.sites[L.source] ? L.source : 'sbcx';
+  const ref = S.sites[src], can = S.sites.canela;
   const ruleRows = ['pagina', 'ensemble', 'maioria'].map((r) => [RULE_NAME[r], ref.rain[r], true])
     .concat(OM_MODELS.map((m) => [m.name, ref.rain[m.id], false]).sort((a, b) => (b[1]?.acc ?? -1) - (a[1]?.acc ?? -1)));
   const hours = T('Horas', 'Stunden');
@@ -1037,11 +1039,11 @@ function renderStats() {
       ? T('<b>ativas</b> (viés de temperatura de cada modelo retirado, consenso de máxima e mínima ponderado pelo acerto e chance de chuva hora a hora calibrada).',
         '<b>aktiv</b> (Temperaturabweichung jedes Modells entfernt, Konsens für Höchst- und Tiefstwerte nach Trefferquote gewichtet, stündliche Regenwahrscheinlichkeit kalibriert).')
       : T(`começam com ${L.minDays} dias conferidos (faltam ${left}).`, `ab ${L.minDays} ausgewerteten Tagen (noch ${left}).`)}</p>
-    <div><h3>${T('Chuva hora a hora · aeroporto de Caxias do Sul', 'Stündlicher Regen · Flughafen Caxias do Sul')}</h3>${rainTable}
+    <div><h3>${src === 'inmet' ? T('Chuva hora a hora · estação do INMET em Canela', 'Stündlicher Regen · INMET-Station Canela') : T('Chuva hora a hora · aeroporto de Caxias do Sul', 'Stündlicher Regen · Flughafen Caxias do Sul')}</h3>${rainTable}
       <p class="st-note">${T('"Chuvas previstas": das horas em que choveu, quantas a regra previu. "Falsos alarmes": dos avisos de chuva, quantos não se confirmaram. Previsões feitas de 1 a 24 horas antes.',
         '„Vorhergesagter Regen“: Anteil der Regenstunden, die die Regel vorhergesagt hat. „Fehlalarme“: Anteil der Regenwarnungen, die nicht eintrafen. Vorhersagen 1 bis 24 Stunden im Voraus.')}</p></div>
     <p class="st-note">${canela}</p>
-    <div><h3>${T('Temperatura · erro de cada modelo', 'Temperatur · Fehler jedes Modells')}</h3>${tempTable}
+    <div><h3>${T('Temperatura · erro de cada modelo', 'Temperatur · Fehler jedes Modells')} · ${src === 'inmet' ? T('estação do INMET em Canela', 'INMET-Station Canela') : T('aeroporto de Caxias do Sul', 'Flughafen Caxias do Sul')}</h3>${tempTable}
       <p class="st-note">${T('Desvio sistemático positivo: o modelo costuma prever mais quente do que acontece.', 'Positive systematische Abweichung: das Modell sagt meist wärmer vorher als gemessen.')}</p></div>
     ${calib ? `<div><h3>${T('Calibração da chance de chuva', 'Kalibrierung der Regenwahrscheinlichkeit')}</h3>${calib}</div>` : ''}
     ${skyBlock(S)}
@@ -1054,7 +1056,7 @@ function skyBlock(S) {
   const rows = OM_MODELS.map((m) => [m, ref.sky?.[m.id]]).filter(([, s]) => s?.n).sort((a, b) => a[1].mae - b[1].mae);
   const suns = Object.entries(S.sites).filter(([, s]) => s.sun?.n);
   if (!rows.length && !suns.length) return `<div><h3>${T('Céu e horas de sol', 'Himmel und Sonnenstunden')}</h3><p class="st-note">${T('A conferência do céu começou em 09/11; os primeiros números saem no dia seguinte.', 'Die Prüfung des Himmels läuft seit 09.11.; erste Zahlen am Folgetag.')}</p></div>`;
-  const place = { sbcx: T('Caxias do Sul (METAR)', 'Caxias do Sul (METAR)'), canela: T('Canela (câmera)', 'Canela (Kamera)') };
+  const place = { sbcx: T('Caxias do Sul (METAR)', 'Caxias do Sul (METAR)'), canela: T('Canela (câmera)', 'Canela (Kamera)'), inmet: T('Canela (estação do INMET, pela radiação medida)', 'Canela (INMET-Station, aus der gemessenen Strahlung)') };
   const sunLines = suns.map(([site, s]) => `<li>${place[site]}: ${T(`céu limpo previsto ${s.sun.predicted}%, observado ${s.sun.observed}%`, `vorhergesagter klarer Himmel ${s.sun.predicted} %, beobachtet ${s.sun.observed} %`)} (${s.sun.n} ${T('horas', 'Stunden')})</li>`).join('');
   const factor = L.sunFactor != null ? T(`Fator aprendido para as horas de sol: <b>×${fmt(L.sunFactor, 2)}</b>${L.active ? ' (em uso)' : ' (entra com as correções)'}.`, `Gelernter Faktor für die Sonnenstunden: <b>×${fmt(L.sunFactor, 2)}</b>${L.active ? ' (aktiv)' : ' (gilt ab Aktivierung der Korrekturen)'}.`) : '';
   return `<div><h3>${T('Céu e horas de sol · 6h às 18h', 'Himmel und Sonnenstunden · 6 bis 18 Uhr')}</h3>

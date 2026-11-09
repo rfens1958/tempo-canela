@@ -226,6 +226,8 @@ tr.median th, tr.median td { background: var(--surface-2); font-weight: 700; }
 .st-table td { font: 500 13px var(--f-data); }
 .st-table tr.main th { font-weight: 700; }
 .st-cal { margin: 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 2px; }
+.change-notice { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; border-left: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); font-size: 13.5px; }
+.change-notice a { margin-left: 6px; white-space: nowrap; font-weight: 600; }
 
 /* Secções recolhidas */
 .fold { min-width: 0; border-top: 1px solid var(--line); padding-top: 14px; }
@@ -277,6 +279,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <div class="status" id="status"></div>
+  <p class="change-notice" id="change-notice" hidden></p>
 </section>
 
 <section>
@@ -323,7 +326,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <details class="fold" id="fold-stats">
   <summary><h2 data-de="Trefferquote">Índice de acertos</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
-  <p class="sub" data-de="Die Seite überprüft sich selbst. Stündlich speichert sie, was die 10 Modelle und die Ensembles vorhersagten; am nächsten Tag vergleicht sie mit den Messungen am Flughafen Caxias do Sul (METAR, 40 km von Canela) und mit der Kamera in Canela. Letzte 30 Tage.">A página confere-se sozinha. De hora a hora guarda o que os 10 modelos e os ensembles previam; no dia seguinte compara com o que aconteceu no aeroporto de Caxias do Sul (METAR, a 40 km de Canela) e com a câmera de Canela. Últimos 30 dias.</p>
+  <p class="sub" data-de="Die Seite überprüft sich selbst. Stündlich speichert sie, was die 10 Modelle und die Ensembles vorhersagten; am nächsten Tag vergleicht sie Regen, Temperatur und Bewölkung mit den Messungen am Flughafen Caxias do Sul (METAR, 40 km von Canela) und mit der Kamera in Canela. Letzte 30 Tage. Jede daraus folgende Änderung wird unten mit Datum angezeigt.">A página confere-se sozinha. De hora a hora guarda o que os 10 modelos e os ensembles previam; no dia seguinte compara a chuva, a temperatura e o céu com o que aconteceu no aeroporto de Caxias do Sul (METAR, a 40 km de Canela) e com a câmera de Canela. Últimos 30 dias. Cada mudança que isso provoca aparece em baixo, com a data.</p>
   <div id="stats" class="stats"></div>
 </details>
 
@@ -1020,7 +1023,47 @@ function renderStats() {
     <p class="st-note">${canela}</p>
     <div><h3>${T('Temperatura · erro de cada modelo', 'Temperatur · Fehler jedes Modells')}</h3>${tempTable}
       <p class="st-note">${T('Desvio sistemático positivo: o modelo costuma prever mais quente do que acontece.', 'Positive systematische Abweichung: das Modell sagt meist wärmer vorher als gemessen.')}</p></div>
-    ${calib ? `<div><h3>${T('Calibração da chance de chuva', 'Kalibrierung der Regenwahrscheinlichkeit')}</h3>${calib}</div>` : ''}`;
+    ${calib ? `<div><h3>${T('Calibração da chance de chuva', 'Kalibrierung der Regenwahrscheinlichkeit')}</h3>${calib}</div>` : ''}
+    ${skyBlock(S)}
+    ${changesBlock(S)}`;
+}
+
+// Sky (6h-18h): each model's cloud cover error and the sunshine the page expected against what was seen
+function skyBlock(S) {
+  const ref = S.sites.sbcx, L = S.learning;
+  const rows = OM_MODELS.map((m) => [m, ref.sky?.[m.id]]).filter(([, s]) => s?.n).sort((a, b) => a[1].mae - b[1].mae);
+  const suns = Object.entries(S.sites).filter(([, s]) => s.sun?.n);
+  if (!rows.length && !suns.length) return `<div><h3>${T('Céu e horas de sol', 'Himmel und Sonnenstunden')}</h3><p class="st-note">${T('A conferência do céu começou em 09/11; os primeiros números saem no dia seguinte.', 'Die Prüfung des Himmels läuft seit 09.11.; erste Zahlen am Folgetag.')}</p></div>`;
+  const place = { sbcx: T('Caxias do Sul (METAR)', 'Caxias do Sul (METAR)'), canela: T('Canela (câmera)', 'Canela (Kamera)') };
+  const sunLines = suns.map(([site, s]) => `<li>${place[site]}: ${T(`céu limpo previsto ${s.sun.predicted}%, observado ${s.sun.observed}%`, `vorhergesagter klarer Himmel ${s.sun.predicted} %, beobachtet ${s.sun.observed} %`)} (${s.sun.n} ${T('horas', 'Stunden')})</li>`).join('');
+  const factor = L.sunFactor != null ? T(`Fator aprendido para as horas de sol: <b>×${fmt(L.sunFactor, 2)}</b>${L.active ? ' (em uso)' : ' (entra com as correções)'}.`, `Gelernter Faktor für die Sonnenstunden: <b>×${fmt(L.sunFactor, 2)}</b>${L.active ? ' (aktiv)' : ' (gilt ab Aktivierung der Korrekturen)'}.`) : '';
+  return `<div><h3>${T('Céu e horas de sol · 6h às 18h', 'Himmel und Sonnenstunden · 6 bis 18 Uhr')}</h3>
+    ${rows.length ? `<div class="tablebox"><table class="st-table">
+      <thead><tr><th>${T('Modelo', 'Modell')}</th><th>${T('Erro médio da nebulosidade', 'Mittlerer Fehler der Bewölkung')}</th><th>${T('Desvio sistemático', 'Systematische Abweichung')}</th><th>${T('Horas', 'Stunden')}</th></tr></thead>
+      <tbody>${rows.map(([m, s]) => `<tr><th>${esc(m.name)}</th><td>${s.mae} ${T('pontos', 'Punkte')}</td><td>${s.bias > 0 ? '+' : ''}${s.bias} ${T('pontos', 'Punkte')}</td><td>${s.n}</td></tr>`).join('')}</tbody>
+    </table></div>` : ''}
+    ${sunLines ? `<ul class="st-cal">${sunLines}</ul>` : ''}
+    <p class="st-note">${T('Desvio positivo: o modelo prevê mais nuvens do que as observadas. ', 'Positive Abweichung: das Modell sagt mehr Wolken voraus als beobachtet. ')}${factor}</p></div>`;
+}
+
+// What the self-checking changed, newest first
+function changesBlock(S) {
+  const log = S.changes || [];
+  if (!log.length) return `<div><h3>${T('Mudanças feitas pela autoverificação', 'Änderungen durch die Selbstprüfung')}</h3><p class="st-note">${T('Nenhuma ainda. As correções começam com 14 dias conferidos; cada mudança aparece aqui, com a data.', 'Noch keine. Korrekturen beginnen nach 14 ausgewerteten Tagen; jede Änderung erscheint hier mit Datum.')}</p></div>`;
+  return `<div><h3>${T('Mudanças feitas pela autoverificação', 'Änderungen durch die Selbstprüfung')}</h3>
+    <ul class="st-cal">${log.map((c) => c.items.map((it) => `<li><b>${dm(c.date)}</b> ${esc(T(it.pt, it.de))}</li>`).join('')).join('')}</ul></div>`;
+}
+
+// A notice at the top for 3 days after the self-checking changes something
+function renderChangeNotice() {
+  const box = $('change-notice'), last = lastStats?.changes?.[0];
+  const ageDays = last ? (Date.now() - new Date(last.date + 'T12:00:00-03:00')) / 86400e3 : Infinity;
+  if (!last || ageDays > 3) { box.hidden = true; return; }
+  const first = T(last.items[0].pt, last.items[0].de), more = last.items.length - 1;
+  box.innerHTML = `<b>${T('Autoverificação', 'Selbstprüfung')} · ${dm(last.date)}</b> ${esc(first)}${more > 0 ? T(` (+${more} ${more === 1 ? 'mudança' : 'mudanças'})`, ` (+${more} ${more === 1 ? 'Änderung' : 'Änderungen'})`) : ''}
+    <a href="#fold-stats" id="change-link">${T('Ver detalhes', 'Details ansehen')}</a>`;
+  box.hidden = false;
+  $('change-link').addEventListener('click', () => { $('fold-stats').open = true; });
 }
 
 // ---------- rendering ----------
@@ -1118,7 +1161,8 @@ function sunHours(date, sources, ensPeriods) {
     if (clear == null) continue;
     const e = ensPeriods?.[Math.floor(h / 6)];
     const rain = e?.total >= 20 ? e.wet / e.total : 0;
-    sum += clear * (1 - 0.8 * rain); hours++;
+    // Learned from the self-checking: how much clear sky was actually seen against what was expected
+    sum += Math.min(1, clear * (learning()?.sunFactor ?? 1)) * (1 - 0.8 * rain); hours++;
   }
   return hours >= 10 ? { sun: sum * 13 / hours, n: models.filter((s) => s.hourly[`${date}T12:00`]?.c != null).length } : null;
 }
@@ -1288,6 +1332,7 @@ async function loadAll() {
     fetchWithTimeout(CAM_WORKER + 'stats', 15000).catch(() => null),
   ]);
   lastStats = stats;
+  renderChangeNotice();
   applyLearning(om || []);
   renderStats();
   const sources = [...(om || []), metno, wttr, wo].filter(Boolean);

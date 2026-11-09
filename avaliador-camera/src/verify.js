@@ -8,13 +8,14 @@
 //   obs:<site>:YYYY-MM-DD observações do dia, por hora local
 //   ver:YYYY-MM-DD        resultado da conferência desse dia
 //   stats                 agregado dos últimos 30 dias + correções
+//   changes               histórico das mudanças nas correções (para avisar o utilizador)
 
 export const TZ = "America/Sao_Paulo";
 export const MODELS = [
   "ecmwf_ifs025", "ecmwf_aifs025_single", "gfs_seamless", "ncep_aigfs025", "icon_seamless",
   "gem_seamless", "jma_seamless", "meteofrance_seamless", "ukmo_seamless", "cma_grapes_global",
 ];
-// canela: observada pela câmera (só chuva, quando há análise); sbcx: METAR do aeroporto de Caxias do Sul
+// canela: observada pela câmera (chuva e céu, quando há análise); sbcx: METAR do aeroporto de Caxias do Sul
 export const SITES = {
   canela: { lat: -29.3656, lon: -50.8158 },
   sbcx: { lat: -29.1971, lon: -51.1875, metar: "SBCX" },
@@ -25,6 +26,12 @@ export const LEARN_MIN_DAYS = 14; // as correções só entram com pelo menos 14
 const LEARN_MIN_PAIRS = 100;
 export const BUCKETS = [["1-3h", 1, 3], ["4-12h", 4, 12], ["13-24h", 13, 24]];
 const RULES = ["pagina", "ensemble", "maioria", ...MODELS];
+const SKY_HOURS = [6, 18]; // the sky is checked in daylight, the same hours the page's sunshine covers
+const MODEL_NAME = {
+  ecmwf_ifs025: "ECMWF IFS", ecmwf_aifs025_single: "ECMWF AIFS", gfs_seamless: "GFS", ncep_aigfs025: "AIGFS", icon_seamless: "ICON",
+  gem_seamless: "GEM", jma_seamless: "JMA GSM", meteofrance_seamless: "ARPEGE", ukmo_seamless: "UKMO", cma_grapes_global: "GRAPES",
+};
+const median = (arr) => { const a = arr.filter((x) => x != null).sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
 
 // ---------- horas locais (Brasil sem horário de verão: UTC-3 fixo) ----------
 export function localKey(date) {
@@ -45,7 +52,7 @@ export async function snapshotForecasts(env, now = new Date()) {
   const lat = ids.map((s) => SITES[s].lat).join(","), lon = ids.map((s) => SITES[s].lon).join(",");
   const q = (extra) => new URLSearchParams({ latitude: lat, longitude: lon, timezone: TZ, forecast_days: "2", ...extra });
   const [det, ens] = await Promise.all([
-    fetch("https://api.open-meteo.com/v1/forecast?" + q({ hourly: "temperature_2m,precipitation", models: MODELS.join(",") })).then((r) => r.json()),
+    fetch("https://api.open-meteo.com/v1/forecast?" + q({ hourly: "temperature_2m,precipitation,cloud_cover", models: MODELS.join(",") })).then((r) => r.json()),
     fetch("https://ensemble-api.open-meteo.com/v1/ensemble?" + q({ hourly: "precipitation", models: "ecmwf_ifs025,gfs025" })).then((r) => r.json()),
   ]);
   const dets = Array.isArray(det) ? det : [det], enss = Array.isArray(ens) ? ens : [ens];
@@ -58,6 +65,7 @@ export async function snapshotForecasts(env, now = new Date()) {
       hours[t] = {
         m: MODELS.map((m) => round1(d.hourly[`temperature_2m_${m}`]?.[i])),
         p: MODELS.map((m) => round1(d.hourly[`precipitation_${m}`]?.[i])),
+        c: MODELS.map((m) => d.hourly[`cloud_cover_${m}`]?.[i] ?? null),
       };
     });
     if (e?.hourly) {
@@ -75,13 +83,18 @@ export async function snapshotForecasts(env, now = new Date()) {
   return snap;
 }
 
-// METAR: temperatura do grupo "TT/DD" e chuva pelos códigos de tempo presente (RA, DZ, SH, TS) ou recente (RE..)
+// METAR: temperatura do grupo "TT/DD", chuva pelos códigos de tempo presente (RA, DZ, SH, TS) ou recente (RE..)
+// e nebulosidade (%) pela camada mais coberta: FEW 1-2 oitavos, SCT 3-4, BKN 5-7, OVC 8
+const METAR_COVER = { SKC: 0, CLR: 0, NSC: 0, NCD: 0, FEW: 19, SCT: 44, BKN: 75, OVC: 100 };
 export function parseMetar(raw) {
   const body = raw.replace(/\s(RMK|TEMPO|BECMG)\s.*$/, "");
   const tm = body.match(/\s(M?\d{2})\/(M?\d{2}|\/\/)?(\s|$)/);
   const t = tm ? (tm[1].startsWith("M") ? -1 : 1) * +tm[1].replace("M", "") : null;
   const wet = /(^|\s)(RE)?[-+]?(VC)?(TS|SH)?(RA|DZ|GR|GS)\b|(^|\s)[-+]?TS(\s|$)/.test(body.replace(/\sVC\w+/g, ""));
-  return { t, wet };
+  let c = /\sCAVOK(\s|$)/.test(body) ? 0 : null;
+  for (const m of body.matchAll(/\s(SKC|CLR|NSC|NCD|FEW|SCT|BKN|OVC)(\d{3}|\/\/\/)?/g)) c = Math.max(c ?? 0, METAR_COVER[m[1]]);
+  if (/\sVV(\d{3}|\/\/\/)/.test(body)) c = 100; // sky obscured (fog)
+  return { t, wet, c };
 }
 
 export async function recordMetar(env) {
@@ -94,8 +107,8 @@ export async function recordMetar(env) {
     // Only the routine hourly reports (HH:00); SPECIs in between are skipped
     const when = new Date(m.reportTime || m.obsTime * 1000);
     if (when.getUTCMinutes() !== 0) return;
-    const key = localKey(when), { t, wet } = parseMetar(m.rawOb || "");
-    (byDate[key.slice(0, 10)] ||= {})[key.slice(11, 13)] = { t, wet, raw: m.rawOb };
+    const key = localKey(when), { t, wet, c } = parseMetar(m.rawOb || "");
+    (byDate[key.slice(0, 10)] ||= {})[key.slice(11, 13)] = { t, wet, c, raw: m.rawOb };
   });
   for (const [date, hours] of Object.entries(byDate)) {
     const k = `obs:${site}:${date}`;
@@ -105,15 +118,17 @@ export async function recordMetar(env) {
   return list.length;
 }
 
-// Chamado depois de cada análise da câmera: regista se chovia em Canela na hora da foto
+// Chamado depois de cada análise da câmera: regista se chovia em Canela na hora da foto e, de dia, o céu
+const CAMERA_COVER = { limpo: 5, "poucas nuvens": 20, "parcialmente nublado": 45, nublado: 75, encoberto: 95 };
 export async function recordCamera(env, result) {
   const wetCats = ["garoa", "chuva fraca", "chuva moderada", "chuva forte"];
   const wet = result.precipitation === "indeterminado" ? null : wetCats.includes(result.precipitation);
-  if (wet == null) return;
+  const c = result.daylight === "dia" ? CAMERA_COVER[result.sky] ?? null : null;
+  if (wet == null && c == null) return;
   const key = localKey(new Date(result.image_time));
   const k = `obs:canela:${key.slice(0, 10)}`;
   const doc = (await env.CAMERA.get(k, "json")) || {};
-  doc[key.slice(11, 13)] = { t: null, wet, src: "camera" };
+  doc[key.slice(11, 13)] = { t: null, wet, c, src: "camera" };
   await env.CAMERA.put(k, JSON.stringify(doc), { expirationTtl: 40 * 86400 });
 }
 
@@ -132,9 +147,12 @@ export async function verifyDay(env, date) {
   for (const site of Object.keys(SITES)) {
     const obs = (await env.CAMERA.get(`obs:${site}:${date}`, "json")) || {};
     const temp = {}, rain = {}, rel = Array.from({ length: 10 }, () => [0, 0]);
+    const sky = {}; // model -> [n, soma dos erros, soma dos erros absolutos] da nebulosidade (pontos %)
+    const sun = [0, 0, 0]; // [n, céu limpo previsto (como a página o calcula), céu limpo observado]
     let obsHours = 0;
     for (const [hh, o] of Object.entries(obs)) {
       const key = `${date}T${hh}:00`;
+      const daylight = +hh >= SKY_HOURS[0] && +hh <= SKY_HOURS[1];
       obsHours++;
       for (const s of snaps) {
         const f = s.sites[site]?.[key];
@@ -165,9 +183,19 @@ export async function verifyDay(env, date) {
           addCont(rb.maioria, majority, o.wet);
           f.p.forEach((v, i) => { if (v != null) addCont(rb[MODELS[i]], v >= WET_MM, o.wet); });
         }
+        if (o.c != null && daylight && f.c) {
+          f.c.forEach((v, i) => {
+            if (v == null) return;
+            const a = (sky[MODELS[i]] ||= [0, 0, 0]);
+            a[0]++; a[1] += v - o.c; a[2] += Math.abs(v - o.c);
+          });
+          // The page's clear-sky share for the hour: median of the models, an hour in which a model rains counting little
+          const clear = median(f.c.map((v, i) => (v == null ? null : (1 - v / 100) * ((f.p[i] ?? 0) >= 0.5 ? 0.3 : 1))));
+          if (clear != null) { sun[0]++; sun[1] += clear; sun[2] += 1 - o.c / 100; }
+        }
       }
     }
-    out.sites[site] = { obsHours, temp, rain, rel };
+    out.sites[site] = { obsHours, temp, rain, rel, sky, sun };
   }
   await env.CAMERA.put(`ver:${date}`, JSON.stringify(out), { expirationTtl: 400 * 86400 });
   return out;
@@ -186,6 +214,7 @@ function scores(c) {
 }
 
 export async function rebuildStats(env, today = localKey(new Date()).slice(0, 10)) {
+  const previous = await env.CAMERA.get("stats", "json");
   const dates = Array.from({ length: STATS_DAYS }, (_, i) => addDaysISO(today, -1 - i));
   const vers = (await Promise.all(dates.map((d) => env.CAMERA.get(`ver:${d}`, "json")))).filter(Boolean);
   const days = vers.filter((v) => Object.values(v.sites).some((s) => s.obsHours > 0));
@@ -193,11 +222,14 @@ export async function rebuildStats(env, today = localKey(new Date()).slice(0, 10
   for (const site of Object.keys(SITES)) {
     const tempAll = {}, tempByBucket = {}, rainByBucket = {}, rainAll = Object.fromEntries(RULES.map((r) => [r, emptyCont()]));
     const rel = Array.from({ length: 10 }, () => [0, 0]);
+    const skyAll = {}, sunAll = [0, 0, 0];
     let obsHours = 0;
     for (const v of days) {
       const s = v.sites[site];
       if (!s) continue;
       obsHours += s.obsHours;
+      for (const [m, a] of Object.entries(s.sky || {})) { const t = (skyAll[m] ||= [0, 0, 0]); t[0] += a[0]; t[1] += a[1]; t[2] += a[2]; }
+      (s.sun || [0, 0, 0]).forEach((x, i) => { sunAll[i] += x; });
       for (const [b, models] of Object.entries(s.temp)) for (const [m, a] of Object.entries(models)) {
         for (const tgt of [(tempAll[m] ||= [0, 0, 0]), ((tempByBucket[b] ||= {})[m] ||= [0, 0, 0])]) { tgt[0] += a[0]; tgt[1] += a[1]; tgt[2] += a[2]; }
       }
@@ -215,6 +247,9 @@ export async function rebuildStats(env, today = localKey(new Date()).slice(0, 10
       rain: Object.fromEntries(Object.entries(rainAll).map(([r, c]) => [r, scores(c)])),
       rainByBucket: Object.fromEntries(Object.entries(rainByBucket).map(([b, rules]) => [b, Object.fromEntries(Object.entries(rules).map(([r, c]) => [r, scores(c)]))])),
       reliability: rel.map(([n, w], i) => ({ bin: `${i * 10}-${i * 10 + 10}%`, n, observed: pct(w, n) })),
+      sky: Object.fromEntries(Object.entries(skyAll).map(([m, [n, sum, abs]]) => [m, { n, bias: Math.round(sum / n), mae: Math.round(abs / n) }])),
+      // Clear sky over the daylight hours checked: what the page expected and what was seen
+      sun: { n: sunAll[0], predicted: sunAll[0] ? Math.round((sunAll[1] / sunAll[0]) * 100) : null, observed: sunAll[0] ? Math.round((sunAll[2] / sunAll[0]) * 100) : null },
     };
   }
 
@@ -233,9 +268,65 @@ export async function rebuildStats(env, today = localKey(new Date()).slice(0, 10
   for (const m of Object.keys(weights)) weights[m] = Math.round((weights[m] / wSum) * 1000) / 1000;
   // Ensemble rain chance calibration: observed frequency per 10% bin, where the bin has enough cases
   const calib = ref.reliability.map((r) => (r.n >= 20 ? r.observed : null));
-  stats.learning = { active, minDays: LEARN_MIN_DAYS, tempBias: bias, weights, rainCalib: calib };
+  // Sunshine: ratio of observed to expected clear sky, from Caxias do Sul (METAR) and the Canela camera together
+  const sunN = Object.values(stats.sites).reduce((a, s) => a + s.sun.n, 0);
+  const sunPred = Object.values(stats.sites).reduce((a, s) => a + (s.sun.predicted ?? 0) * s.sun.n, 0);
+  const sunObs = Object.values(stats.sites).reduce((a, s) => a + (s.sun.observed ?? 0) * s.sun.n, 0);
+  const sunFactor = sunN >= LEARN_MIN_PAIRS && sunPred > 0 ? Math.round(Math.min(1.5, Math.max(0.5, sunObs / sunPred)) * 100) / 100 : null;
+  stats.learning = { active, minDays: LEARN_MIN_DAYS, tempBias: bias, weights, rainCalib: calib, sunFactor };
+
+  // Tell the user what the self-checking changed: compare with yesterday's corrections and keep a log
+  const items = describeChanges(previous?.learning, stats.learning, stats.days);
+  const log = (await env.CAMERA.get("changes", "json")) || [];
+  if (items.length) {
+    log.unshift({ date: today, items });
+    await env.CAMERA.put("changes", JSON.stringify(log.slice(0, 60)));
+  }
+  stats.changes = log.slice(0, 10);
   await env.CAMERA.put("stats", JSON.stringify(stats));
   return stats;
+}
+
+// Each change in both languages: { pt, de }
+const sgn = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1).replace(".", ",");
+const dec2 = (v) => v.toFixed(2).replace(".", ",");
+export function describeChanges(prev, cur, days) {
+  const out = [];
+  if (!cur.active) {
+    if (prev?.active) out.push({ pt: `Correções automáticas suspensas: só ${days} dias conferidos (são precisos ${cur.minDays}).`, de: `Automatische Korrekturen ausgesetzt: nur ${days} ausgewertete Tage (nötig sind ${cur.minDays}).` });
+    return out;
+  }
+  if (!prev?.active) {
+    const nT = Object.keys(cur.tempBias).length, nC = cur.rainCalib.filter((x) => x != null).length;
+    out.push({
+      pt: `Correções automáticas ativadas após ${days} dias conferidos: temperatura de ${nT} modelos, pesos do consenso, chance de chuva calibrada em ${nC} ${nC === 1 ? "faixa" : "faixas"}${cur.sunFactor != null ? `, horas de sol ×${dec2(cur.sunFactor)}` : ''}.`,
+      de: `Automatische Korrekturen aktiviert nach ${days} ausgewerteten Tagen: Temperatur von ${nT} Modellen, Gewichte im Konsens, Regenwahrscheinlichkeit in ${nC} ${nC === 1 ? "Stufe" : "Stufen"} kalibriert${cur.sunFactor != null ? `, Sonnenstunden ×${dec2(cur.sunFactor)}` : ''}.`,
+    });
+    return out;
+  }
+  for (const [m, b] of Object.entries(cur.tempBias)) {
+    const was = prev.tempBias?.[m];
+    if (was == null || Math.abs(b - was) >= 0.5) {
+      out.push({ pt: `Temperatura do ${MODEL_NAME[m]}: correção passa de ${was == null ? "nenhuma" : sgn(-was) + " °C"} para ${sgn(-b)} °C.`, de: `Temperatur ${MODEL_NAME[m]}: Korrektur von ${was == null ? "keiner" : sgn(-was) + " °C"} auf ${sgn(-b)} °C.` });
+    }
+  }
+  const top = (w) => Object.entries(w || {}).sort((a, b) => b[1] - a[1])[0];
+  const [topNow, wNow] = top(cur.weights) || [], [topWas] = top(prev.weights) || [];
+  if (topNow && topNow !== topWas) out.push({ pt: `O modelo com mais peso no consenso passou a ser o ${MODEL_NAME[topNow]} (${Math.round(wNow * 100)}%).`, de: `Das Modell mit dem höchsten Gewicht im Konsens ist jetzt ${MODEL_NAME[topNow]} (${Math.round(wNow * 100)} %).` });
+  cur.rainCalib.forEach((v, i) => {
+    const was = prev.rainCalib?.[i];
+    if (v != null && (was == null || Math.abs(v - was) >= 10)) {
+      out.push({ pt: `Chance de chuva: quando os ensembles indicam ${i * 10}–${i * 10 + 10}%, a página passa a mostrar ${v}%.`, de: `Regenwahrscheinlichkeit: zeigen die Ensembles ${i * 10}–${i * 10 + 10} %, zeigt die Seite jetzt ${v} %.` });
+    }
+  });
+  if (cur.sunFactor != null && (prev.sunFactor == null || Math.abs(cur.sunFactor - prev.sunFactor) >= 0.1)) {
+    const more = cur.sunFactor < 1;
+    out.push({
+      pt: `Horas de sol: fator de correção passa a ×${dec2(cur.sunFactor)} (os modelos previam ${more ? "mais" : "menos"} sol do que o observado).`,
+      de: `Sonnenstunden: Korrekturfaktor jetzt ×${dec2(cur.sunFactor)} (die Modelle sagten ${more ? "mehr" : "weniger"} Sonne voraus als beobachtet).`,
+    });
+  }
+  return out;
 }
 
 // Corre a cada hora: regista, e uma vez por dia (01h local) confere o dia anterior

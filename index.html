@@ -310,7 +310,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <details class="fold" id="fold-table">
   <summary><h2 data-de="Vergleich nach Quelle">Comparação por fonte</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
-  <p class="sub" data-de="Höchst- / Tiefstwert in °C und Tagesniederschlag in mm. Jedes Modell rechnet unabhängig; weicht eines um 3 °C oder mehr vom Median ab, wird die Zelle hervorgehoben.">Máxima / mínima em °C e chuva do dia em mm. Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada.</p>
+  <p class="sub" data-de="Höchst- / Tiefstwert in °C und Tagesniederschlag in mm (heute: nur der noch erwartete). Jedes Modell rechnet unabhängig; weicht eines um 3 °C oder mehr vom Median ab, wird die Zelle hervorgehoben.">Máxima / mínima em °C e chuva do dia em mm (hoje: só a que ainda falta). Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada.</p>
   <div class="tablebox"><table id="table"></table></div>
   <div class="legend"><span data-de="weicht 3 °C oder mehr vom Median ab">diverge 3 °C ou mais da mediana</span></div>
 </details>
@@ -566,33 +566,39 @@ async function loadEnsemble() {
   const d = await fetchWithTimeout('https://ensemble-api.open-meteo.com/v1/ensemble?' + q, 30000);
   const keys = Object.keys(d.hourly).filter((k) => k.startsWith('precipitation'));
   const nowKey = localHourKey(new Date()), today = nowKey.slice(0, 10);
-  const perDay = {}; // date -> {wet, total}: members with 1 mm or more that day (today: in the hours still ahead)
-  const perHour = {}; // 'YYYY-MM-DDTHH:00' -> {wet, total}: members with 0.2 mm or more that hour
-  const perPeriod = {}; // date -> 4 x {wet, total}: members with 0.5 mm or more in 0-6h, 6-12h, 12-18h, 18-24h
+  // One nested definition, so the numbers can never contradict each other (hour ≤ its period ≤ the day):
+  // a member is wet in an hour with 0.2 mm or more; in a period if it has such an hour or 0.5 mm over the 6 hours;
+  // on a day if any of its periods is wet
+  const perDay = {}; // date -> {wet, total} (today: only the hours still ahead)
+  const perHour = {}; // 'YYYY-MM-DDTHH:00' -> {wet, total}
+  const perPeriod = {}; // date -> 4 x {wet, total}: 0-6h, 6-12h, 12-18h, 18-24h
   keys.forEach((k) => {
-    const sums = {}, counts = {}, psums = {};
+    const counts = {}, psums = {};
     d.hourly[k].forEach((v, i) => {
       if (v == null) return;
       const key = d.hourly.time[i], date = key.slice(0, 10);
       // Rain that already fell earlier today no longer counts for today, for the day or for its periods
       if (date !== today || key > nowKey) {
-        sums[date] = (sums[date] || 0) + v; counts[date] = (counts[date] || 0) + 1;
-        const ps = (psums[date] ||= [[0, 0], [0, 0], [0, 0], [0, 0]])[Math.floor(+key.slice(11, 13) / 6)];
-        ps[0] += v; ps[1]++;
+        counts[date] = (counts[date] || 0) + 1;
+        const ps = (psums[date] ||= [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]])[Math.floor(+key.slice(11, 13) / 6)];
+        ps[0] += v; ps[1]++; if (v >= 0.2) ps[2] = 1;
       }
       const h = perHour[key] || (perHour[key] = { wet: 0, total: 0 });
       h.total++; if (v >= 0.2) h.wet++;
     });
-    Object.keys(sums).forEach((date) => {
+    Object.entries(psums).forEach(([date, ps]) => {
+      let dayWet = false;
+      ps.forEach(([sum, n, wetHour], p) => {
+        if (n < (date === today ? 1 : 3)) return;
+        const wet = wetHour || sum >= 0.5;
+        dayWet ||= wet;
+        const e = (perPeriod[date] ||= [0, 1, 2, 3].map(() => ({ wet: 0, total: 0 })))[p];
+        e.total++; if (wet) e.wet++;
+      });
       if (counts[date] < (date === today ? 1 : 6)) return;
       const e = perDay[date] || (perDay[date] = { wet: 0, total: 0 });
-      e.total++; if (sums[date] >= 1) e.wet++;
+      e.total++; if (dayWet) e.wet++;
     });
-    Object.entries(psums).forEach(([date, ps]) => ps.forEach(([sum, n], p) => {
-      if (n < (date === today ? 1 : 3)) return;
-      const e = (perPeriod[date] ||= [0, 1, 2, 3].map(() => ({ wet: 0, total: 0 })))[p];
-      e.total++; if (sum >= 0.5) e.wet++;
-    }));
   });
   return { perDay, perHour, perPeriod };
 }
@@ -758,7 +764,8 @@ function renderOutlook() {
   const models = lastNowSources.filter((s) => s.kind === 'model');
   const modelsAt = (key) => {
     const ms = models.filter((s) => s.hourly[key]);
-    return { n: ms.length, wet: ms.filter((s) => (s.hourly[key].p ?? 0) >= 0.2).length, t: median(ms.map((s) => s.hourly[key].t)) };
+    // Temperature: median of every hourly source, the same line as the 72-hour chart
+    return { n: ms.length, wet: ms.filter((s) => (s.hourly[key].p ?? 0) >= 0.2).length, t: median(lastNowSources.map((s) => s.hourly?.[key]?.t)) };
   };
   const hr = H.time.map((key, i) => ({ key, i })).filter(({ key }) => key > nowKey && key <= endKey).map(({ key, i }) => {
     const m = modelsAt(key), e = lastEnsHour[key]?.total >= 20 ? lastEnsHour[key] : null;
@@ -1153,9 +1160,12 @@ function restOfToday(sources, date) {
 // (Open-Meteo's own sunshine_duration was not usable: coarse models give near 0 or 12 h whatever the clouds.)
 function sunHours(date, sources, ensPeriods) {
   const models = sources.filter((s) => s.kind === 'model');
+  // Today, like the rest of the row, only the daylight hours still ahead count (no rescaling to a full day)
+  const nowKey = localHourKey(new Date()), isToday = date === nowKey.slice(0, 10);
   let sum = 0, hours = 0;
   for (let h = 6; h <= 18; h++) {
     const key = `${date}T${String(h).padStart(2, '0')}:00`;
+    if (isToday && key <= nowKey) continue;
     const clear = median(models.map((s) => s.hourly[key]).filter((x) => x?.c != null)
       .map((x) => (1 - x.c / 100) * ((x.p ?? 0) >= 0.5 ? 0.3 : 1)));
     if (clear == null) continue;
@@ -1164,6 +1174,7 @@ function sunHours(date, sources, ensPeriods) {
     // Learned from the self-checking: how much clear sky was actually seen against what was expected
     sum += Math.min(1, clear * (learning()?.sunFactor ?? 1)) * (1 - 0.8 * rain); hours++;
   }
+  if (isToday) return hours ? { sun: sum, n: models.filter((s) => s.hourly[`${date}T18:00`]?.c != null).length, today: true } : null;
   return hours >= 10 ? { sun: sum * 13 / hours, n: models.filter((s) => s.hourly[`${date}T12:00`]?.c != null).length } : null;
 }
 
@@ -1274,7 +1285,7 @@ function renderDays(cons, ensAll, sources) {
         </div>`).join('')}</div>
       <div class="temps">
         <div class="tv" title="${T(`Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°`, `Min. ${fmt(c.minLo)}° bis ${fmt(c.minHi)}° · Max. ${fmt(c.maxLo)}° bis ${fmt(c.maxHi)}°`)}"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
-        ${c.sun != null ? `<div class="sun" title="${T(`Estimativa pela nebulosidade de ${c.sunN} modelos e pela chance de chuva de cada período`, `Geschätzt aus der Bewölkung von ${c.sunN} Modellen und der Regenwahrscheinlichkeit je Zeitraum`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
+        ${c.sun != null ? `<div class="sun" title="${T(`Estimativa pela nebulosidade de ${c.sunN} modelos e pela chance de chuva de cada período${c.rest ? ' · só as horas de luz que faltam hoje' : ''}`, `Geschätzt aus der Bewölkung von ${c.sunN} Modellen und der Regenwahrscheinlichkeit je Zeitraum${c.rest ? ' · nur die heute noch verbleibenden hellen Stunden' : ''}`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
       </div>
       <div class="rain"><span class="mm">${fmt(c.pr, 1)} mm</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
       <div class="agree">${conf}</div>
@@ -1284,13 +1295,27 @@ function renderDays(cons, ensAll, sources) {
 
 function renderTable(sources, cons, dates) {
   const head = `<thead><tr><th class="srcname">${T('Fonte', 'Quelle')}</th>${dates.map((d, i) => { const { wd, dm } = dayLabel(d, i); return `<th>${wd}<br><span class="num" style="font-weight:400">${dm}</span></th>`; }).join('')}</tr></thead>`;
-  const cell = (v, c) => {
+  // Today the rain is, as in the median row and the 10 days, only what is still to fall; a source without
+  // hourly data can only give its whole-day total, which is then shown dimmed and left out of the median
+  const nowKey = localHourKey(new Date()), today = nowKey.slice(0, 10);
+  const prOf = (s, d, v) => {
+    if (d !== today || v.pr == null) return { pr: v.pr, whole: false };
+    const ahead = Object.keys(s.hourly).filter((k) => k.startsWith(d) && k > nowKey);
+    return ahead.length ? { pr: ahead.reduce((a, k) => a + (s.hourly[k].p ?? 0), 0), whole: false } : { pr: v.pr, whole: true };
+  };
+  const cell = (s, d, c) => {
+    const v = s.days[d];
     if (!v) return '<td class="na">–</td>';
     const off = c.max != null && Math.abs(v.max - c.max) >= 3 || (v.min != null && c.min != null && Math.abs(v.min - c.min) >= 3);
-    return `<td class="${off ? 'off' : ''}" title="${esc(v.text || '')}"><span class="mx">${fmt(v.max)}</span> / <span class="mn">${fmt(v.min)}</span>${v.pr != null ? `<span class="pr">${fmt(v.pr, 1)} mm</span>` : ''}</td>`;
+    const { pr, whole } = prOf(s, d, v);
+    const prHtml = pr == null ? '' : whole
+      ? `<span class="pr" style="opacity:.55" title="${T('dia inteiro (fonte sem dados por hora)', 'ganzer Tag (Quelle ohne Stundenwerte)')}">${fmt(pr, 1)} mm*</span>`
+      : `<span class="pr">${fmt(pr, 1)} mm</span>`;
+    return `<td class="${off ? 'off' : ''}" title="${esc(v.text || '')}"><span class="mx">${fmt(v.max)}</span> / <span class="mn">${fmt(v.min)}</span>${prHtml}</td>`;
   };
-  const rows = sources.map((s) => `<tr><th class="srcname">${esc(s.name)}<small>${esc(s.org)}</small></th>${dates.map((d, i) => cell(s.days[d], cons[i])).join('')}</tr>`).join('');
-  const med = `<tr class="median"><th class="srcname">${T('Mediana', 'Median')}<small>${sources.length} ${T('fontes', 'Quellen')}</small></th>${cons.map((c) => `<td><span class="mx">${fmt(c.max)}</span> / <span class="mn">${fmt(c.min)}</span><span class="pr">${fmt(c.pr, 1)} mm</span></td>`).join('')}</tr>`;
+  const rows = sources.map((s) => `<tr><th class="srcname">${esc(s.name)}<small>${esc(s.org)}</small></th>${dates.map((d, i) => cell(s, d, cons[i])).join('')}</tr>`).join('');
+  // Once the self-checking is active, max/min are a mean weighted by each model's accuracy, not a plain median
+  const med = `<tr class="median"><th class="srcname">${learnedWeights() ? T('Consenso', 'Konsens') : T('Mediana', 'Median')}<small>${sources.length} ${T('fontes', 'Quellen')}</small></th>${cons.map((c) => `<td><span class="mx">${fmt(c.max)}</span> / <span class="mn">${fmt(c.min)}</span><span class="pr">${fmt(c.pr, 1)} mm</span></td>`).join('')}</tr>`;
   $('table').innerHTML = head + '<tbody>' + med + rows + '</tbody>';
 }
 

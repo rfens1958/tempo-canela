@@ -1178,17 +1178,33 @@ function consensus(sources, dates, ensAll = {}) {
     // Once learning is active, max/min are a mean weighted by each model's recent accuracy
     const tmax = w ? weightedMean(pairs.map(([s, v]) => [v.max, w(s)])) : median(maxs);
     const tmin = w ? weightedMean(pairs.map(([s, v]) => [v.min, w(s)])) : median(mins);
-    // Models label any trace of rain as drizzle, so the day's condition comes from the median rain amount;
-    // only the dry/cloudy part comes from the sources' own labels.
+    // Whether and when it rains comes from the same ensemble chances as the four periods and the badge, so the
+    // day's words never contradict them; the models' median amount only sets how strong the rain is, and their
+    // own labels only tell showers from steady rain and spot thunderstorms.
     const pr = median(prs);
     const cats = {}; vals.forEach((v) => { if (v.cat) cats[v.cat] = (cats[v.cat] || 0) + 1; });
     const storms = cats.storm || 0, showers = cats.showers || 0;
+    const eDay = ensAll.perDay?.[date];
+    const dayChance = eDay?.total ? eDay.wet / eDay.total * 100 : prs.length ? prs.filter((p) => p >= 1).length / prs.length * 100 : null;
+    const wetPeriods = (ensAll.perPeriod?.[date] || []).map((e, p) => (e?.total >= 20 && e.wet / e.total >= 0.5 ? p : null)).filter((p) => p != null);
+    const showery = showers > (cats.rain || 0);
+    const stormy = storms >= Math.max(2, vals.length / 4);
+    const WHEN = T(['de madrugada', 'de manhã', 'à tarde', 'à noite'], ['in der Nacht', 'am Vormittag', 'am Nachmittag', 'am Abend']);
     let cat, text;
-    if (pr != null && pr >= 1) {
-      if (storms >= Math.max(2, vals.length / 4)) { cat = 'storm'; text = T('Chuva com trovoadas', 'Regen mit Gewittern'); }
-      else if (pr >= 15) { cat = 'rain'; text = T('Chuva forte', 'Starker Regen'); }
-      else if (pr >= 5) { cat = showers > (cats.rain || 0) ? 'showers' : 'rain'; text = cat === 'showers' ? T('Pancadas de chuva', 'Regenschauer') : T('Chuva', 'Regen'); }
-      else { cat = showers > (cats.rain || 0) ? 'showers' : 'rain'; text = cat === 'showers' ? T('Pancadas isoladas', 'Vereinzelte Schauer') : T('Chuva fraca', 'Leichter Regen'); }
+    if (wetPeriods.length >= 3) {
+      cat = stormy ? 'storm' : showery ? 'showers' : 'rain';
+      text = stormy ? T('Chuva com trovoadas', 'Regen mit Gewittern') : pr >= 15 ? T('Chuva forte', 'Starker Regen')
+        : pr >= 5 ? (showery ? T('Pancadas de chuva', 'Regenschauer') : T('Chuva', 'Regen')) : (showery ? T('Pancadas fracas', 'Leichte Schauer') : T('Chuva fraca', 'Leichter Regen'));
+    } else if (wetPeriods.length) {
+      cat = stormy ? 'storm' : showery ? 'showers' : 'rain';
+      const noun = stormy ? T('Trovoadas', 'Gewitter') : showery ? T('Pancadas', 'Schauer') : T('Chuva', 'Regen');
+      text = `${noun} ${wetPeriods.map((p) => WHEN[p]).join(T(' e ', ' und '))}`;
+    } else if (dayChance != null && dayChance >= 40) {
+      cat = 'showers';
+      text = showery || stormy ? T('Pancadas possíveis', 'Schauer möglich') : T('Chuva possível', 'Regen möglich');
+    } else if (dayChance == null && pr != null && pr >= 1) {
+      cat = showery ? 'showers' : 'rain'; // no ensemble data: fall back to the models' amount
+      text = showery ? T('Pancadas isoladas', 'Vereinzelte Schauer') : T('Chuva fraca', 'Leichter Regen');
     } else {
       const sky = ['sun', 'partly', 'cloud', 'fog'].map((c) => [c, cats[c] || 0]);
       const wetish = (cats.drizzle || 0) + (cats.rain || 0) + showers + storms;
@@ -1199,7 +1215,7 @@ function consensus(sources, dates, ensAll = {}) {
       if (rest?.cloud != null && cat !== 'fog') cat = rest.cloud < 30 ? 'sun' : rest.cloud < 70 ? 'partly' : 'cloud'; // today: the sky still ahead
       else if (sun != null && cat !== 'fog') cat = sun >= 9 ? 'sun' : sun >= 4.5 ? 'partly' : 'cloud'; // same 30 % / 70 % cloud lines as the periods
       text = T({ sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }, { sun: 'Sonnig', partly: 'Sonne und Wolken', cloud: 'Bewölkt', fog: 'Nebel' })[cat];
-      if (pr != null && pr >= 0.2) text += T(', garoa possível', ', Nieselregen möglich');
+      if (dayChance != null ? dayChance >= 20 : pr != null && pr >= 0.2) text += T(', garoa possível', ', Nieselregen möglich');
     }
     return {
       date, n: vals.length, cat, text, rest: !!rest,

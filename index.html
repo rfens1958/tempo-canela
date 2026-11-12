@@ -856,7 +856,15 @@ function renderOutlook() {
         sub: T(`${start.chance}% de chance${byRadar ? ' · visto no radar' : ''}`, `${start.chance} % Wahrscheinlichkeit${byRadar ? ' · im Radar sichtbar' : ''}`) };
     } else {
       const top = hr.reduce((a, b) => (b.chance > a.chance ? b : a));
-      if (top.chance >= 30 || top.wet >= 3) notes.push({ possible: true, at: top,
+      // The ensembles give rain as likely (50%+) but the models disagree on the hour: not a "significant change"
+      // (no majority), yet the banner must not say "no rain" either — it says likely, like the strip and the 10 days
+      const first = hr.find((x) => x.chance >= 50);
+      if (first) {
+        notes.push({ short: T(`Chuva provável ${first.h} · ${top.chance}%`, `Regen wahrscheinlich ${first.h} · ${top.chance} %`),
+          long: T(`Chuva provável a partir das ${first.h}, até ${top.chance}% às ${top.h} (${agree(top)}); os modelos não concordam no horário`, `Regen wahrscheinlich ab ${first.h}, bis ${top.chance} % um ${top.h} (${agree(top)}); die Modelle sind sich über die Uhrzeit uneinig`) });
+        verdict ||= { lvl: 'warn', cat: 'showers', title: T(`Chuva provável a partir das ${first.h}`, `Regen wahrscheinlich ab ${first.h}`),
+          sub: T(`até ${top.chance}% às ${top.h} · horário incerto`, `bis ${top.chance} % um ${top.h} · Uhrzeit unsicher`) };
+      } else if (top.chance >= 30 || top.wet >= 3) notes.push({ possible: true, at: top,
         short: T(`Chuva possível ${top.h} · ${top.chance}%`, `Regen möglich ${top.h} · ${top.chance} %`),
         long: T(`Possibilidade de chuva por volta das ${top.h} (${agree(top)}), sem acordo da maioria dos modelos`, `Regen gegen ${top.h} möglich (${agree(top)}), ohne Mehrheit der Modelle`) });
     }
@@ -915,7 +923,9 @@ function renderOutlook() {
   const maxChance = Math.max(...hr.map((x) => x.chance));
   const possible = notes.find((n) => n.possible);
   verdict ||= {
-    lvl: 'ok', cat: lastCur.is_day === 0 ? 'cloud' : 'sun', title: T(`Sem chuva ${label}`, `Kein Regen ${label}`),
+    lvl: 'ok', cat: lastCur.is_day === 0 ? 'cloud' : 'sun',
+    // 30–49%: under the 10 days' rain line (50%), but not "no rain" either
+    title: possible ? T(`Chuva pouco provável ${label}`, `Regen wenig wahrscheinlich ${label}`) : T(`Sem chuva ${label}`, `Kein Regen ${label}`),
     sub: possible ? T(`possível às ${possible.at.h} · ${possible.at.chance}%`, `möglich um ${possible.at.h} · ${possible.at.chance} %`)
       : T(`chance máx. ${maxChance}% · ${fmt(lo.t)}° a ${fmt(hi.t)}°`, `max. ${maxChance} % · ${fmt(lo.t)}° bis ${fmt(hi.t)}°`),
   };

@@ -384,10 +384,10 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <footer data-de-html='Daten werden bei jedem Öffnen der Seite und danach alle 30 Minuten direkt von den Quellen geladen.
   Modelle über &lt;a href="https://open-meteo.com/" target="_blank" rel="noopener"&gt;Open-Meteo&lt;/a&gt; (CC BY 4.0): ECMWF IFS und AIFS, NOAA GFS und AIGFS, DWD ICON, CMC GEM, JMA, Météo-France ARPEGE, UK Met Office und CMA GRAPES.
-  Außerdem &lt;a href="https://api.met.no/" target="_blank" rel="noopener"&gt;MET Norway&lt;/a&gt; (CC BY 4.0), &lt;a href="https://wttr.in/" target="_blank" rel="noopener"&gt;wttr.in&lt;/a&gt; (World Weather Online) und das öffentliche Widget von Wetteronline. Kamera: camerasdaserra.com.br; Radar: Climatempo; Satellit: GOES-19 (NOAA, via RealEarth/SSEC).'>
+  Außerdem &lt;a href="https://api.met.no/" target="_blank" rel="noopener"&gt;MET Norway&lt;/a&gt; (CC BY 4.0), &lt;a href="https://wttr.in/" target="_blank" rel="noopener"&gt;wttr.in&lt;/a&gt; (World Weather Online) und Wetteronline: öffentliches Widget sowie die 14-Tage-Vorhersage von &lt;a href="https://www.climaeradar.com.br/previsao-tempo/canela/11567001" target="_blank" rel="noopener"&gt;Clima &amp;amp; Radar&lt;/a&gt; (brasilianische Seite von Wetteronline). Kamera: camerasdaserra.com.br; Radar: Climatempo; Satellit: GOES-19 (NOAA, via RealEarth/SSEC).'>
   Dados lidos diretamente das fontes cada vez que a página abre, e novamente a cada 30 minutos.
   Modelos via <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0): ECMWF IFS e AIFS, NOAA GFS e AIGFS, DWD ICON, CMC GEM, JMA, Météo-France ARPEGE, UK Met Office e CMA GRAPES.
-  Também <a href="https://api.met.no/" target="_blank" rel="noopener">MET Norway</a> (CC BY 4.0), <a href="https://wttr.in/" target="_blank" rel="noopener">wttr.in</a> (World Weather Online) e o widget público do Wetteronline.
+  Também <a href="https://api.met.no/" target="_blank" rel="noopener">MET Norway</a> (CC BY 4.0), <a href="https://wttr.in/" target="_blank" rel="noopener">wttr.in</a> (World Weather Online) e o Wetteronline: widget público e a previsão de 14 dias do <a href="https://www.climaeradar.com.br/previsao-tempo/canela/11567001" target="_blank" rel="noopener">Clima &amp; Radar</a> (site brasileiro do Wetteronline).
 </footer>
 
 </div>
@@ -674,6 +674,37 @@ async function loadWetteronline() {
   const wind = parseFloat(doc.querySelector('#wind-speed')?.textContent);
   if (!Number.isNaN(t)) src.now = { t, wind: Number.isNaN(wind) ? null : wind, text: '', cat: null };
   if (!Object.keys(src.days).length) throw new Error(T('formato inesperado', 'unerwartetes Format'));
+  return src;
+}
+
+// Clima & Radar (climaeradar.com.br, Wetteronline's Brazilian site): 14 days with rain chance, mm range and sunshine,
+// read by our Worker (cached 3 hours). It replaces the Wetteronline widget's numbers, which come from the same forecast.
+// Symbol codes: first two letters the sky (so sunny, wb changing, bw cloudy, bd overcast), then g = thunder,
+// s = showers, r = rain, n = fog, with a digit for the strength.
+function climaCat(sym = '') {
+  if (/g\d/.test(sym)) return 'storm';
+  if (/r\d/.test(sym)) return 'rain';
+  if (/s\d/.test(sym)) return sym.startsWith('bd') ? 'rain' : 'showers';
+  if (/n\d|^nb|^ne/.test(sym)) return 'fog';
+  if (/^so|^ms/.test(sym)) return 'sun';
+  if (/^wb|^hb/.test(sym)) return 'partly';
+  return 'cloud';
+}
+const CAT_WORD = T({ sun: 'sol', partly: 'sol entre nuvens', cloud: 'nublado', fog: 'nevoeiro', drizzle: 'garoa', rain: 'chuva', showers: 'pancadas', storm: 'trovoadas', snow: 'neve' },
+  { sun: 'sonnig', partly: 'Sonne und Wolken', cloud: 'bewölkt', fog: 'Nebel', drizzle: 'Niesel', rain: 'Regen', showers: 'Schauer', storm: 'Gewitter', snow: 'Schnee' });
+async function loadClimaRadar() {
+  const d = await fetchWithTimeout(CAM_WORKER + 'clima', 20000);
+  if (!d?.days) throw new Error(d?.error || T('formato inesperado', 'unerwartetes Format'));
+  const src = { id: 'clima', name: 'Clima & Radar', org: T('Wetteronline · Brasil', 'Wetteronline · Brasilien'), kind: 'site', days: {}, hourly: {} };
+  for (const [date, v] of Object.entries(d.days)) {
+    const cat = climaCat(v.symbol), [lo, hi] = v.mm || [0, 0];
+    src.days[date] = {
+      max: v.max, min: v.min, cat,
+      pr: hi > 0 ? (lo + hi) / 2 : 0, prRange: hi > 0 ? [lo, hi] : null, // mm come as a range; the middle enters the consensus
+      text: T(`${CAT_WORD[cat]} · chuva ${v.prob ?? '–'}% · ${v.sun ?? '–'} h de sol`, `${CAT_WORD[cat]} · Regen ${v.prob ?? '–'} % · ${v.sun ?? '–'} Std. Sonne`),
+    };
+  }
+  if (!Object.keys(src.days).length) throw new Error(T('sem dias', 'keine Tage'));
   return src;
 }
 
@@ -1100,7 +1131,7 @@ function renderChangeNotice() {
 
 // ---------- rendering ----------
 const STATUS = [
-  ['om', T('Open-Meteo · 10 modelos', 'Open-Meteo · 10 Modelle')], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['wo', 'Wetteronline'],
+  ['om', T('Open-Meteo · 10 modelos', 'Open-Meteo · 10 Modelle')], ['ens', 'Ensembles ECMWF + GFS'], ['metno', 'MET Norway'], ['wttr', 'wttr.in'], ['clima', 'Clima & Radar'], ['wo', 'Wetteronline'],
   ['cam', T('Câmera, radar e satélite', 'Kamera, Radar und Satellit')],
 ];
 function renderStatus(st) {
@@ -1265,7 +1296,7 @@ function consensus(sources, dates, ensAll = {}) {
       if (dayChance != null ? dayChance >= 20 : pr != null && pr >= 0.2) text += T(', garoa possível', ', Nieselregen möglich');
     }
     return {
-      date, n: vals.length, cat, text, rest: !!rest,
+      date, n: vals.length, cat, text, rest: !!rest, chance: dayChance,
       max: tmax, min: tmin, maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
       pr, prLo: minOf(prs), prHi: maxOf(prs),
       // Shown range: lowest to highest of the sources that expect rain (1 mm or more). On the 64 days it rained at the
@@ -1304,6 +1335,8 @@ function periodsOf(date, sources, ensPeriods) {
 // beside it says how likely that is. "< 1 mm" when sources only show traces, "0 mm" when none shows any.
 function rainRange(c) {
   if (c.prHi == null) return '–';
+  // Under 20% chance a lone wet source must not show as an amount beside "1% de chance": the day reads as dry
+  if (c.chance != null && c.chance < 20) return (c.pr ?? 0) < 0.2 ? '0 mm' : '< 1 mm';
   if (c.wetLo == null) return c.prHi >= 0.2 ? '< 1 mm' : '0 mm';
   const f = (x) => fmt(x, x < 10 ? 1 : 0);
   return c.prHi - c.wetLo < 0.5 ? `~${f(c.prHi)} mm` : `${f(c.wetLo)} ${T('a', 'bis')} ${f(c.prHi)} mm`;
@@ -1357,9 +1390,11 @@ function renderTable(sources, cons, dates) {
     if (!v) return '<td class="na">–</td>';
     const off = c.max != null && Math.abs(v.max - c.max) >= 3 || (v.min != null && c.min != null && Math.abs(v.min - c.min) >= 3);
     const { pr, whole } = prOf(s, d, v);
+    // A source that gives the rain as a range (Clima & Radar) shows its range
+    const prTxt = v.prRange ? `${fmt(v.prRange[0])}–${fmt(v.prRange[1])} mm` : `${fmt(pr, 1)} mm`;
     const prHtml = pr == null ? '' : whole
-      ? `<span class="pr" style="opacity:.55" title="${T('dia inteiro (fonte sem dados por hora)', 'ganzer Tag (Quelle ohne Stundenwerte)')}">${fmt(pr, 1)} mm*</span>`
-      : `<span class="pr">${fmt(pr, 1)} mm</span>`;
+      ? `<span class="pr" style="opacity:.55" title="${T('dia inteiro (fonte sem dados por hora)', 'ganzer Tag (Quelle ohne Stundenwerte)')}">${prTxt}*</span>`
+      : `<span class="pr">${prTxt}</span>`;
     return `<td class="${off ? 'off' : ''}" title="${esc(v.text || '')}"><span class="mx">${fmt(v.max)}</span> / <span class="mn">${fmt(v.min)}</span>${prHtml}</td>`;
   };
   const rows = sources.map((s) => `<tr><th class="srcname">${esc(s.name)}<small>${esc(s.org)}</small></th>${dates.map((d, i) => cell(s, d, cons[i])).join('')}</tr>`).join('');
@@ -1416,16 +1451,18 @@ async function loadAll() {
   const track = (k, p) => p.then((v) => { st[k] = 'ok'; renderStatus(st); return v; }, (e) => { st[k] = e.name === 'AbortError' ? T('tempo esgotado', 'Zeitüberschreitung') : e.message; renderStatus(st); return null; });
   // The camera assessment can take several seconds, so it renders on its own without holding up the forecast
   track('cam', loadCamera()).then(renderCamera);
-  const [om, cur, ens, metno, wttr, wo, stats] = await Promise.all([
+  const [om, cur, ens, metno, wttr, wo, clima, stats] = await Promise.all([
     track('om', loadOpenMeteoModels()), track('om', loadOpenMeteoNow()).catch(() => null), track('ens', loadEnsemble()),
-    track('metno', loadMetNo()), track('wttr', loadWttr()), track('wo', loadWetteronline()),
+    track('metno', loadMetNo()), track('wttr', loadWttr()), track('wo', loadWetteronline()), track('clima', loadClimaRadar()),
     fetchWithTimeout(CAM_WORKER + 'stats', 15000).catch(() => null),
   ]);
   lastStats = stats;
   renderChangeNotice();
   applyLearning(om || []);
   renderStats();
-  const sources = [...(om || []), metno, wttr, wo].filter(Boolean);
+  // Clima & Radar and the Wetteronline widget are the same forecast: count it once, the richer one when it loads
+  // (the widget still gives its current temperature to the "Agora" list)
+  const sources = [...(om || []), metno, wttr, clima || wo].filter(Boolean);
   const today = localDate(new Date());
   const dates = Array.from({ length: DAYS }, (_, i) => addDays(today, i));
   lastEnsHour = ens?.perHour || {};

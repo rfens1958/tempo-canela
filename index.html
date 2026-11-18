@@ -585,7 +585,14 @@ async function loadEnsemble() {
   const perDay = {}; // date -> {wet, total} (today: only the hours still ahead)
   const perHour = {}; // 'YYYY-MM-DDTHH:00' -> {wet, total}
   const perPeriod = {}; // date -> 4 x {wet, total}: 0-6h, 6-12h, 12-18h, 18-24h
+  // Each member's hours for the next two days, so "Próximas horas" can ask the same question as the periods:
+  // will it rain at some point between now and 20h (not only: in this one hour)
+  const until = localHourKey(new Date(Date.now() + 48 * 3600e3));
+  const members = [];
   keys.forEach((k) => {
+    const mh = {};
+    d.hourly[k].forEach((v, i) => { const key = d.hourly.time[i]; if (v != null && key > nowKey && key <= until) mh[key] = v; });
+    members.push(mh);
     const counts = {}, psums = {};
     d.hourly[k].forEach((v, i) => {
       if (v == null) return;
@@ -613,7 +620,7 @@ async function loadEnsemble() {
       e.total++; if (dayWet) e.wet++;
     });
   });
-  return { perDay, perHour, perPeriod };
+  return { perDay, perHour, perPeriod, members };
 }
 
 async function loadMetNo() {
@@ -793,7 +800,14 @@ function applyCameraToNow() {
 // hour is the share of the 82 ECMWF + GFS ensemble scenarios with rain (the 10 models when the ensembles
 // are missing), and rain only counts as a significant change when most models agree. When the camera
 // contradicts what the models had for now, the first hours are pulled towards what the camera shows.
-let lastCur = null, lastNowSources = [], lastEnsHour = {};
+let lastCur = null, lastNowSources = [], lastEnsHour = {}, lastEnsMembers = [];
+// Chance of rain at some point in (fromKey, toKey]: share of ensemble members with an hour of 0.2 mm or more.
+// Same definition as the 10 days' periods, so the banner and the periods answer the same question.
+function windowChance(fromKey, toKey) {
+  const ms = lastEnsMembers.filter((m) => Object.keys(m).some((k) => k > fromKey && k <= toKey));
+  if (ms.length < 20) return null;
+  return Math.round(ms.filter((m) => Object.entries(m).some(([k, v]) => k > fromKey && k <= toKey && v >= 0.2)).length / ms.length * 100);
+}
 const isWetPrecip = (s) => ['garoa', 'chuva fraca', 'chuva moderada', 'chuva forte'].includes(s);
 const CAM_DISCOUNT = [0.4, 0.6, 0.8]; // camera dry, models wet: share of the chance kept in the next 3 hours
 const CAM_PERSIST = [60, 40]; // camera wet, models dry: minimum chance in the next 2 hours
@@ -887,17 +901,19 @@ function renderOutlook() {
         sub: T(`${start.chance}% de chance${byRadar ? ' · visto no radar' : ''}`, `${start.chance} % Wahrscheinlichkeit${byRadar ? ' · im Radar sichtbar' : ''}`) };
     } else {
       const top = hr.reduce((a, b) => (b.chance > a.chance ? b : a));
-      // The ensembles give rain as likely (50%+) but the models disagree on the hour: not a "significant change"
-      // (no majority), yet the banner must not say "no rain" either — it says likely, like the strip and the 10 days
-      const first = hr.find((x) => x.chance >= 50);
-      if (first) {
-        notes.push({ short: T(`Chuva provável ${first.h} · ${top.chance}%`, `Regen wahrscheinlich ${first.h} · ${top.chance} %`),
-          long: T(`Chuva provável a partir das ${first.h}, até ${top.chance}% às ${top.h} (${agree(top)}); os modelos não concordam no horário`, `Regen wahrscheinlich ab ${first.h}, bis ${top.chance} % um ${top.h} (${agree(top)}); die Modelle sind sich über die Uhrzeit uneinig`) });
-        verdict ||= { lvl: 'warn', cat: 'showers', title: T(`Chuva provável a partir das ${first.h}`, `Regen wahrscheinlich ab ${first.h}`),
-          sub: T(`até ${top.chance}% às ${top.h} · horário incerto`, `bis ${top.chance} % um ${top.h} · Uhrzeit unsicher`) };
-      } else if (top.chance >= 30 || top.wet >= 3) notes.push({ possible: true, at: top,
-        short: T(`Chuva possível ${top.h} · ${top.chance}%`, `Regen möglich ${top.h} · ${top.chance} %`),
-        long: T(`Possibilidade de chuva por volta das ${top.h} (${agree(top)}), sem acordo da maioria dos modelos`, `Regen gegen ${top.h} möglich (${agree(top)}), ohne Mehrheit der Modelle`) });
+      // Without a majority of models on one hour, the banner answers the same question as the 10 days' periods: will it
+      // rain at some point until the end of the window? (share of ensemble members with any wet hour). The strip's
+      // per-hour chances are lower by nature, since each also has to hit the right hour, and the self-check calibrates them.
+      const win = windowChance(nowKey, endKey);
+      const chanceWin = win ?? top.chance;
+      if (chanceWin >= 50) {
+        notes.push({ short: T(`Chuva provável · ${chanceWin}%`, `Regen wahrscheinlich · ${chanceWin} %`),
+          long: T(`${chanceWin}% de chance de chover em algum momento ${label}; horário incerto, mais provável por volta das ${top.h} (${agree(top)})`, `${chanceWin} % Wahrscheinlichkeit für Regen ${label}; Uhrzeit unsicher, am ehesten gegen ${top.h} (${agree(top)})`) });
+        verdict ||= { lvl: 'warn', cat: 'showers', title: T(`Chuva provável ${label}`, `Regen wahrscheinlich ${label}`),
+          sub: T(`${chanceWin}% de chance · mais provável por volta das ${top.h}`, `${chanceWin} % · am ehesten gegen ${top.h}`) };
+      } else if (chanceWin >= 30 || top.wet >= 3) notes.push({ possible: true, at: top, win: chanceWin,
+        short: T(`Chuva possível ${top.h} · ${chanceWin}%`, `Regen möglich ${top.h} · ${chanceWin} %`),
+        long: T(`Possibilidade de chuva ${label} (${chanceWin}% de chance), mais provável por volta das ${top.h}; sem acordo da maioria dos modelos`, `Regen ${label} möglich (${chanceWin} %), am ehesten gegen ${top.h}; ohne Mehrheit der Modelle`) });
     }
   } else {
     const k = hr.findIndex((x, i) => dryHour(x) && hr[i + 1] && dryHour(hr[i + 1]));
@@ -951,14 +967,14 @@ function renderOutlook() {
     }
   }
 
-  const maxChance = Math.max(...hr.map((x) => x.chance));
+  const maxChance = windowChance(nowKey, endKey) ?? Math.max(...hr.map((x) => x.chance));
   const possible = notes.find((n) => n.possible);
   verdict ||= {
     lvl: 'ok', cat: lastCur.is_day === 0 ? 'cloud' : 'sun',
     // 30–49%: under the 10 days' rain line (50%), but not "no rain" either
     title: possible ? T(`Chuva pouco provável ${label}`, `Regen wenig wahrscheinlich ${label}`) : T(`Sem chuva ${label}`, `Kein Regen ${label}`),
-    sub: possible ? T(`possível às ${possible.at.h} · ${possible.at.chance}%`, `möglich um ${possible.at.h} · ${possible.at.chance} %`)
-      : T(`chance máx. ${maxChance}% · ${fmt(lo.t)}° a ${fmt(hi.t)}°`, `max. ${maxChance} % · ${fmt(lo.t)}° bis ${fmt(hi.t)}°`),
+    sub: possible ? T(`${possible.win}% de chance · mais provável às ${possible.at.h}`, `${possible.win} % · am ehesten um ${possible.at.h}`)
+      : T(`chance de chuva ${maxChance}% · ${fmt(lo.t)}° a ${fmt(hi.t)}°`, `Regen ${maxChance} % · ${fmt(lo.t)}° bis ${fmt(hi.t)}°`),
   };
   $('verdict').className = `verdict ${verdict.lvl}`;
   $('verdict').innerHTML = `${icon(verdict.cat, '')}<div><b>${esc(verdict.title)}</b><span>${esc(verdict.sub)}</span></div>`;
@@ -980,7 +996,7 @@ function renderOutlook() {
   const chips = [...ev.map((e) => `<span class="evc ${e.sev}">${esc(e.short)}</span>`),
     ...notes.filter((n) => !(verdict.lvl === 'ok' && n === possible)).map((n) => `<span class="evc nota">${esc(n.short)}</span>`)];
   box.innerHTML = `
-    <div class="ol-label">${T('Próximas horas · chance de chuva', 'Nächste Stunden · Regenwahrscheinlichkeit')}</div>
+    <div class="ol-label">${T('Próximas horas · chance de chuva em cada hora', 'Nächste Stunden · Regenwahrscheinlichkeit je Stunde')}</div>
     <div class="ol-strip">${strip}</div>
     ${chips.length ? `<div class="ev-chips">${chips.join('')}</div>` : ''}`;
 
@@ -1465,7 +1481,7 @@ async function loadAll() {
   const sources = [...(om || []), metno, wttr, clima || wo].filter(Boolean);
   const today = localDate(new Date());
   const dates = Array.from({ length: DAYS }, (_, i) => addDays(today, i));
-  lastEnsHour = ens?.perHour || {};
+  lastEnsHour = ens?.perHour || {}; lastEnsMembers = ens?.members || [];
   renderNow(cur, [metno, wttr, wo, ...(om || [])].filter(Boolean));
   if (sources.length) {
     const cons = consensus(sources, dates, ens || {});

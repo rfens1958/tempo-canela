@@ -806,7 +806,8 @@ let lastCur = null, lastNowSources = [], lastEnsHour = {}, lastEnsMembers = [];
 function windowChance(fromKey, toKey) {
   const ms = lastEnsMembers.filter((m) => Object.keys(m).some((k) => k > fromKey && k <= toKey));
   if (ms.length < 20) return null;
-  return Math.round(ms.filter((m) => Object.entries(m).some(([k, v]) => k > fromKey && k <= toKey && v >= 0.2)).length / ms.length * 100);
+  // calibrated like a period (the window spans one to three of them) once the station has taught that
+  return Math.round(periodChance(ms.filter((m) => Object.entries(m).some(([k, v]) => k > fromKey && k <= toKey && v >= 0.2)).length / ms.length * 100));
 }
 const isWetPrecip = (s) => ['garoa', 'chuva fraca', 'chuva moderada', 'chuva forte'].includes(s);
 const CAM_DISCOUNT = [0.4, 0.6, 0.8]; // camera dry, models wet: share of the chance kept in the next 3 hours
@@ -1048,6 +1049,10 @@ const weightedMean = (pairs) => {
   return sw ? sv / sw : null;
 };
 const learnedCalib = (chance) => learning()?.rainCalib?.[Math.min(9, Math.floor(chance / 10))] ?? null;
+// Period (6 h) and day chances, calibrated at the INMET station in Canela once it has 14 days of each (until then: raw)
+const calibBin = (arr, chance) => (chance == null ? null : arr?.[Math.min(9, Math.floor(chance / 10))] ?? null);
+const periodChance = (chance) => calibBin(learning()?.periodCalib, chance) ?? chance;
+const dayChanceCal = (chance) => calibBin(learning()?.dayCalib, chance) ?? chance;
 
 const MODEL_NAME = Object.fromEntries(OM_MODELS.map((m) => [m.id, m.name]));
 const RULE_NAME = {
@@ -1102,9 +1107,18 @@ function renderStats() {
     <p class="st-note">${canela}</p>
     <div><h3>${T('Temperatura · erro de cada modelo', 'Temperatur · Fehler jedes Modells')} · ${src === 'inmet' ? T('estação do INMET em Canela', 'INMET-Station Canela') : T('aeroporto de Caxias do Sul', 'Flughafen Caxias do Sul')}</h3>${tempTable}
       <p class="st-note">${T('Desvio sistemático positivo: o modelo costuma prever mais quente do que acontece.', 'Positive systematische Abweichung: das Modell sagt meist wärmer vorher als gemessen.')}</p></div>
-    ${calib ? `<div><h3>${T('Calibração da chance de chuva', 'Kalibrierung der Regenwahrscheinlichkeit')}</h3>${calib}</div>` : ''}
+    ${calib ? `<div><h3>${T('Calibração da chance de chuva', 'Kalibrierung der Regenwahrscheinlichkeit')}</h3>${calib}${periodDayNote(S)}</div>` : ''}
     ${skyBlock(S)}
     ${changesBlock(S)}`;
+}
+
+// Progress of the period and day calibrations (INMET station in Canela)
+function periodDayNote(S) {
+  const i = S.sites.inmet, L = S.learning;
+  if (!i?.periodReliability) return '';
+  const part = (R, cal, pt, de) => T(`${pt}: ${R.days} dia(s) conferido(s)${cal ? ', <b>calibração em uso</b>' : `, calibração começa com ${L.minDays}`}`,
+    `${de}: ${R.days} ausgewertete(r) Tag(e)${cal ? ', <b>Kalibrierung aktiv</b>' : `, Kalibrierung ab ${L.minDays}`}`);
+  return `<p class="st-note">${T('Acima: chance em cada hora. ', 'Oben: Wahrscheinlichkeit je Stunde. ')}${part(i.periodReliability, L.periodCalib, 'Por período', 'Je Tageszeit')} · ${part(i.dayReliability, L.dayCalib, 'do dia', 'für den Tag')}.</p>`;
 }
 
 // Sky (6h-18h): each model's cloud cover error and the sunshine the page expected against what was seen
@@ -1242,7 +1256,7 @@ function sunHours(date, sources, ensPeriods) {
       .map((x) => (1 - x.c / 100) * ((x.p ?? 0) >= 0.5 ? 0.3 : 1)));
     if (clear == null) continue;
     const e = ensPeriods?.[Math.floor(h / 6)];
-    const rain = e?.total >= 20 ? e.wet / e.total : 0;
+    const rain = e?.total >= 20 ? periodChance(e.wet / e.total * 100) / 100 : 0;
     // Learned from the self-checking: how much clear sky was actually seen against what was expected
     sum += Math.min(1, clear * (learning()?.sunFactor ?? 1)) * (1 - 0.8 * rain); hours++;
   }
@@ -1268,8 +1282,8 @@ function consensus(sources, dates, ensAll = {}) {
     const cats = {}; vals.forEach((v) => { if (v.cat) cats[v.cat] = (cats[v.cat] || 0) + 1; });
     const storms = cats.storm || 0, showers = cats.showers || 0;
     const eDay = ensAll.perDay?.[date];
-    const dayChance = eDay?.total ? eDay.wet / eDay.total * 100 : prs.length ? prs.filter((p) => p >= 1).length / prs.length * 100 : null;
-    const wetPeriods = (ensAll.perPeriod?.[date] || []).map((e, p) => (e?.total >= 20 && e.wet / e.total >= 0.5 ? p : null)).filter((p) => p != null);
+    const dayChance = eDay?.total ? dayChanceCal(eDay.wet / eDay.total * 100) : prs.length ? prs.filter((p) => p >= 1).length / prs.length * 100 : null;
+    const wetPeriods = (ensAll.perPeriod?.[date] || []).map((e, p) => (e?.total >= 20 && periodChance(e.wet / e.total * 100) >= 50 ? p : null)).filter((p) => p != null);
     const showery = showers > (cats.rain || 0);
     const stormy = storms >= Math.max(2, vals.length / 4);
     const WHEN = T(['de madrugada', 'de manhã', 'à tarde', 'à noite'], ['in der Nacht', 'am Vormittag', 'am Nachmittag', 'am Abend']);
@@ -1337,7 +1351,7 @@ function periodsOf(date, sources, ensPeriods) {
     const past = !keys.length;
     const e = ensPeriods?.[p];
     const withData = models.filter((s) => keys.some((k) => s.hourly[k]));
-    const chance = e?.total >= 20 ? Math.round(e.wet / e.total * 100)
+    const chance = e?.total >= 20 ? Math.round(periodChance(e.wet / e.total * 100))
       : withData.length ? Math.round(withData.filter((s) => keys.reduce((a, k) => a + (s.hourly[k]?.p ?? 0), 0) >= 0.5).length / withData.length * 100) : null;
     const cloud = median(withData.flatMap((s) => keys.map((k) => s.hourly[k]?.c)));
     const night = p === 0 || p === 3;
@@ -1364,7 +1378,7 @@ function renderDays(cons, ensAll, sources) {
     const { wd, dm } = dayLabel(c.date, i);
     const periods = periodsOf(c.date, sources, ensAll.perPeriod?.[c.date]);
     const e = ens[c.date];
-    const prob = e && e.total ? Math.round(e.wet / e.total * 100) : null;
+    const prob = e && e.total ? Math.round(dayChanceCal(e.wet / e.total * 100)) : null;
     const rainTxt = prob != null ? T(`${prob}% de chance`, `${prob} % Wahrscheinlichkeit`) : T(`${c.wetSources} de ${c.prN} fontes`, `${c.wetSources} von ${c.prN} Quellen`);
     const pct = prob != null ? prob : (c.prN ? Math.round(c.wetSources / c.prN * 100) : 0);
     // Rain agreement: how lopsided the wet/dry split is (ensemble scenarios, or sources without them)

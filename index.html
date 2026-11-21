@@ -119,6 +119,7 @@ section { min-width: 0; }
 .evc { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .evc.alta { border-color: var(--warm); color: var(--warm); font-weight: 700; }
 .evc.média { border-color: var(--sun); color: var(--sun); font-weight: 600; }
+.evc.conv { border-color: var(--bad); color: var(--bad); font-weight: 600; }
 /* everything long, collapsed */
 .more summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent); width: max-content; }
 .more-body { display: grid; gap: 6px; padding-top: 8px; font-size: 13.5px; }
@@ -171,6 +172,7 @@ section { min-width: 0; }
 .rain .pbar i { display: block; height: 100%; background: var(--rain); }
 .agree { font-size: 12px; text-align: right; }
 .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-weight: 600; font-size: 11.5px; border: 1px solid currentColor; }
+.pill.conv { color: var(--bad); margin-right: 6px; }
 .pill.high { color: var(--ok); } .pill.mid { color: var(--muted); } .pill.low { color: var(--warm); }
 
 /* Tabela */
@@ -306,13 +308,13 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2 data-de="Nächste 10 Tage: Konsens">Próximos 10 dias: consenso</h2>
-  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Regen: von der kleinsten bis zur größten Menge der Quellen, die Regen erwarten; „leicht“ (unter 5 mm) und „stark“ (ab 15 mm) richten sich nach deren Median. Sonnenstunden: zwischen 6 und 18 Uhr aus der Bewölkung der Modelle geschätzt, abzüglich der Zeiträume mit wahrscheinlichem Regen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (mindestens eine Stunde mit 0,2 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Chuva: da menor à maior quantidade entre as fontes que preveem chuva; o texto diz "fraca" (menos de 5 mm) ou "forte" (15 mm ou mais) pela mediana dessas fontes. Horas de sol: estimadas entre 6h e 18h pela nebulosidade dos modelos, descontando os períodos em que a chuva é provável. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (alguma hora com 0,2 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
+  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Regen: Menge, falls es regnet (Median der Quellen, die Regen erwarten; die Wahrscheinlichkeit daneben sagt, ob es regnet); „leicht“ (unter 5 mm) und „stark“ (ab 15 mm) richten sich nach dieser Menge. ⚡ „Unwettergefahr“: ein Modell erwartet 10 mm oder mehr in einer Stunde; in 6 Monaten Prüfung erkannte das 5 von 6 Starkregen. Sonnenstunden: zwischen 6 und 18 Uhr aus der Bewölkung der Modelle geschätzt, abzüglich der Zeiträume mit wahrscheinlichem Regen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (mindestens eine Stunde mit 0,2 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Chuva: quanto chove se chover (mediana das fontes que preveem chuva; a chance ao lado diz se vai chover); o texto diz "fraca" (menos de 5 mm) ou "forte" (15 mm ou mais) por esse volume. ⚡ "risco de temporal": algum modelo prevê 10 mm ou mais numa só hora; na conferência de 6 meses, avisou 5 de 6 aguaceiros. Horas de sol: estimadas entre 6h e 18h pela nebulosidade dos modelos, descontando os períodos em que a chuva é provável. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (alguma hora com 0,2 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
   <div class="days" id="days"></div>
 </section>
 
 <details class="fold" id="fold-table">
   <summary><h2 data-de="Vergleich nach Quelle">Comparação por fonte</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
-  <p class="sub" data-de="Höchst- / Tiefstwert in °C und Tagesniederschlag in mm (heute: nur der noch erwartete). Jedes Modell rechnet unabhängig; weicht eines um 3 °C oder mehr vom Median ab, wird die Zelle hervorgehoben. Die Zeile „Konsens“ ist das, was in den 10 Tagen steht: Median der Temperaturen und, beim Regen, die Spanne der Quellen, die Regen erwarten.">Máxima / mínima em °C e chuva do dia em mm (hoje: só a que ainda falta). Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada. A linha Consenso é o que aparece nos 10 dias: mediana das temperaturas e, na chuva, a faixa das fontes que preveem chuva.</p>
+  <p class="sub" data-de="Höchst- / Tiefstwert in °C und Tagesniederschlag in mm (heute: nur der noch erwartete). Jedes Modell rechnet unabhängig; weicht eines um 3 °C oder mehr vom Median ab, wird die Zelle hervorgehoben. Die Zeile „Konsens“ ist das, was in den 10 Tagen steht: Median der Temperaturen und, beim Regen, die Menge, falls es regnet.">Máxima / mínima em °C e chuva do dia em mm (hoje: só a que ainda falta). Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada. A linha Consenso é o que aparece nos 10 dias: mediana das temperaturas e, na chuva, quanto chove se chover.</p>
   <div class="tablebox"><table id="table"></table></div>
   <div class="legend"><span data-de="weicht 3 °C oder mehr vom Median ab">diverge 3 °C ou mais da mediana</span></div>
 </details>
@@ -925,6 +927,13 @@ function renderOutlook() {
       verdict ||= { lvl: 'alert', cat: 'rain', title: T(`Chuva continua ${label}`, `Regen hält an ${label}`), sub: T('chove agora', 'es regnet jetzt') };
     }
   }
+  // Convective downpour risk in the window (same signal as the 10 days' "⚡ risco de temporal")
+  const cvs = [...new Set([nowKey.slice(0, 10), endKey.slice(0, 10)])].map((d) => convectiveRisk(d, lastNowSources, nowKey, endKey)).filter(Boolean);
+  const cv = cvs.sort((a, b) => b.max - a.max)[0];
+  if (cv) {
+    const n = cvs.reduce((a, x) => Math.max(a, x.n), 0);
+    notes.unshift({ conv: true, short: T(`⚡ Risco de temporal ~${cv.hour}h`, `⚡ Unwettergefahr ~${cv.hour} Uhr`), long: convTitle({ ...cv, n }) });
+  }
   const hi = hr.reduce((a, b) => (b.t > a.t ? b : a)), lo = hr.reduce((a, b) => (b.t < a.t ? b : a));
   // Warming that peaks between 9h and 17h and cooling towards the evening or night are the normal daily cycle:
   // only a swing against that cycle (e.g. a cold front cooling the afternoon) or of 8 °C or more is significant
@@ -995,7 +1004,7 @@ function renderOutlook() {
     </div>`).join('');
   // The possibility already shown under the green verdict is not repeated as a chip
   const chips = [...ev.map((e) => `<span class="evc ${e.sev}">${esc(e.short)}</span>`),
-    ...notes.filter((n) => !(verdict.lvl === 'ok' && n === possible)).map((n) => `<span class="evc nota">${esc(n.short)}</span>`)];
+    ...notes.filter((n) => !(verdict.lvl === 'ok' && n === possible)).map((n) => `<span class="evc ${n.conv ? 'conv' : 'nota'}">${esc(n.short)}</span>`)];
   box.innerHTML = `
     <div class="ol-label">${T('Próximas horas · chance de chuva em cada hora', 'Nächste Stunden · Regenwahrscheinlichkeit je Stunde')}</div>
     <div class="ol-strip">${strip}</div>
@@ -1323,15 +1332,21 @@ function consensus(sources, dates, ensAll = {}) {
       if (rest?.cloud != null && cat !== 'fog') cat = rest.cloud < 30 ? 'sun' : rest.cloud < 70 ? 'partly' : 'cloud'; // today: the sky still ahead
       else if (sun != null && cat !== 'fog') cat = sun >= 9 ? 'sun' : sun >= 4.5 ? 'partly' : 'cloud'; // same 30 % / 70 % cloud lines as the periods
       text = T({ sun: 'Sol', partly: 'Sol entre nuvens', cloud: 'Nublado', fog: 'Nevoeiro' }, { sun: 'Sonnig', partly: 'Sonne und Wolken', cloud: 'Bewölkt', fog: 'Nebel' })[cat];
-      if (dayChance != null ? dayChance >= 20 : pr != null && pr >= 0.2) text += T(', garoa possível', ', Nieselregen möglich');
+      // The suffix follows the amount shown beside it: "garoa" only when what falls, if it rains, is a drizzle
+      if (dayChance != null ? dayChance >= 20 : pr != null && pr >= 0.2) {
+        text += (ifRain ?? 0) >= 2 ? (showery || stormy ? T(', pancadas possíveis', ', Schauer möglich') : T(', chuva possível', ', Regen möglich'))
+          : T(', garoa possível', ', Nieselregen möglich');
+      }
     }
     return {
       date, n: vals.length, cat, text, rest: !!rest, chance: dayChance,
       max: tmax, min: tmin, maxLo: minOf(maxs), maxHi: maxOf(maxs), minLo: minOf(mins), minHi: maxOf(mins),
       pr, prLo: minOf(prs), prHi: maxOf(prs),
-      // Shown range: lowest to highest of the sources that expect rain (1 mm or more). On the 64 days it rained at the
-      // INMET station (May–Nov/2026) the rain fell inside it on 41, below on 11, above on 12.
-      wetLo: minOf(prs.filter((p) => p >= 1)),
+      // Shown amount: what the sources that expect rain (1 mm or more) give, their median ("how much, if it rains");
+      // the chance beside it says how likely. Checked on 166 days at the INMET station: on rainy days it matched what fell
+      // (median 6.9 vs 6.8 mm), with the same error as the other options (~7 mm); the mean would mix in the dry chance.
+      wetLo: minOf(prs.filter((p) => p >= 1)), wetMed: ifRain,
+      conv: convectiveRisk(date, sources),
       wetN: prs.filter((p) => p >= 1).length, wetSources: prs.filter((p) => p >= 1).length, prN: prs.length,
       sun: sunny?.sun ?? null, sunN: sunny?.n ?? 0,
     };
@@ -1361,16 +1376,36 @@ function periodsOf(date, sources, ensPeriods) {
   });
 }
 
-// The day's rain as shown: from the lowest to the highest of the sources that expect rain (1 mm or more); the chance
-// beside it says how likely that is. "< 1 mm" when sources only show traces, "0 mm" when none shows any.
-function rainRange(c) {
+// The day's rain as shown: one number, how much falls if it rains (median of the sources with 1 mm or more).
+// "< 1 mm" when sources only show traces, "0 mm" when none shows any or the chance is under 20%.
+function rainAmount(c) {
   if (c.prHi == null) return '–';
   // Under 20% chance a lone wet source must not show as an amount beside "1% de chance": the day reads as dry
   if (c.chance != null && c.chance < 20) return (c.pr ?? 0) < 0.2 ? '0 mm' : '< 1 mm';
-  if (c.wetLo == null) return c.prHi >= 0.2 ? '< 1 mm' : '0 mm';
-  const f = (x) => fmt(x, x < 10 ? 1 : 0);
-  return c.prHi - c.wetLo < 0.5 ? `~${f(c.prHi)} mm` : `${f(c.wetLo)} ${T('a', 'bis')} ${f(c.prHi)} mm`;
+  if (c.wetMed == null) return c.prHi >= 0.2 ? '< 1 mm' : '0 mm';
+  return `${fmt(c.wetMed, c.wetMed < 10 ? 1 : 0)} mm`;
 }
+
+// Convective downpour risk: some model puts 10 mm or more in a single hour (today: only the hours ahead).
+// Tested on 169 days at the INMET station (May–Nov/2026): it flagged 5 of the 6 days with 10 mm or more in one hour,
+// with 12 alarms on days without such a downpour (cells are local: a "false" alarm may have hit next door).
+// CAPE and the models' thunder codes did worse (3 and 4 of 6, with more false alarms).
+const CONV_MM = 10;
+function convectiveRisk(date, sources, fromKey = localHourKey(new Date()), toKey = `${date}T23:59`) {
+  let n = 0, max = 0, at = null;
+  for (const s of sources.filter((x) => x.kind === 'model')) {
+    let hit = false;
+    for (const [k, h] of Object.entries(s.hourly)) {
+      if (!k.startsWith(date) || k <= fromKey || k > toKey || h.p == null) continue;
+      if (h.p >= CONV_MM) hit = true;
+      if (h.p > max) { max = h.p; at = k; }
+    }
+    if (hit) n++;
+  }
+  return n ? { n, max, hour: +at.slice(11, 13) } : null;
+}
+const convTitle = (cv) => T(`${cv.n} ${cv.n === 1 ? 'modelo prevê' : 'modelos preveem'} ${CONV_MM} mm ou mais numa só hora (até ${fmt(cv.max)} mm, por volta das ${cv.hour}h): risco de aguaceiro convectivo, com hora e lugar incertos. Nos 6 meses conferidos com a estação de Canela, este sinal avisou 5 de 6 aguaceiros.`,
+  `${cv.n} ${cv.n === 1 ? 'Modell erwartet' : 'Modelle erwarten'} ${CONV_MM} mm oder mehr in einer Stunde (bis ${fmt(cv.max)} mm, gegen ${cv.hour} Uhr): Gefahr eines konvektiven Starkregens, Zeit und Ort unsicher. In 6 Monaten an der Station Canela erkannte dieses Signal 5 von 6 Starkregen.`);
 
 function renderDays(cons, ensAll, sources) {
   const ens = ensAll.perDay || {};
@@ -1399,8 +1434,8 @@ function renderDays(cons, ensAll, sources) {
         <div class="tv" title="${T(`Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°`, `Min. ${fmt(c.minLo)}° bis ${fmt(c.minHi)}° · Max. ${fmt(c.maxLo)}° bis ${fmt(c.maxHi)}°`)}"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
         ${c.sun != null ? `<div class="sun" title="${T(`Estimativa pela nebulosidade de ${c.sunN} modelos e pela chance de chuva de cada período${c.rest ? ' · só as horas de luz que faltam hoje' : ''}`, `Geschätzt aus der Bewölkung von ${c.sunN} Modellen und der Regenwahrscheinlichkeit je Zeitraum${c.rest ? ' · nur die heute noch verbleibenden hellen Stunden' : ''}`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
       </div>
-      <div class="rain"><span class="mm" title="${T(`Da menor à maior quantidade entre as ${c.wetN} fontes que preveem 1 mm ou mais (de ${c.prN} fontes)`, `Von der kleinsten bis zur größten Menge der ${c.wetN} Quellen mit 1 mm oder mehr (von ${c.prN} Quellen)`)}">${rainRange(c)}</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
-      <div class="agree">${conf}</div>
+      <div class="rain"><span class="mm" title="${c.wetN ? T(`Quanto chove se chover: mediana das ${c.wetN} fontes que preveem 1 mm ou mais (de ${c.prN}); elas vão de ${fmt(c.wetLo, 1)} a ${fmt(c.prHi, 1)} mm`, `Menge, falls es regnet: Median der ${c.wetN} Quellen mit 1 mm oder mehr (von ${c.prN}); sie reichen von ${fmt(c.wetLo, 1)} bis ${fmt(c.prHi, 1)} mm`) : ''}">${rainAmount(c)}</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
+      <div class="agree">${c.conv ? `<span class="pill conv" title="${esc(convTitle(c.conv))}">⚡ ${T('risco de temporal', 'Unwettergefahr')}</span>` : ''}${conf}</div>
     </div>`;
   }).join('');
 }
@@ -1429,7 +1464,7 @@ function renderTable(sources, cons, dates) {
   };
   const rows = sources.map((s) => `<tr><th class="srcname">${esc(s.name)}<small>${esc(s.org)}</small></th>${dates.map((d, i) => cell(s, d, cons[i])).join('')}</tr>`).join('');
   // Once the self-checking is active, max/min are a mean weighted by each model's accuracy, not a plain median
-  const med = `<tr class="median"><th class="srcname">${T('Consenso', 'Konsens')}<small>${sources.length} ${T('fontes', 'Quellen')}</small></th>${cons.map((c) => `<td><span class="mx">${fmt(c.max)}</span> / <span class="mn">${fmt(c.min)}</span><span class="pr">${rainRange(c)}</span></td>`).join('')}</tr>`;
+  const med = `<tr class="median"><th class="srcname">${T('Consenso', 'Konsens')}<small>${sources.length} ${T('fontes', 'Quellen')}</small></th>${cons.map((c) => `<td><span class="mx">${fmt(c.max)}</span> / <span class="mn">${fmt(c.min)}</span><span class="pr">${rainAmount(c)}</span></td>`).join('')}</tr>`;
   $('table').innerHTML = head + '<tbody>' + med + rows + '</tbody>';
 }
 

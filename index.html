@@ -308,13 +308,13 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
 
 <section>
   <h2 data-de="Nächste 10 Tage: Konsens">Próximos 10 dias: consenso</h2>
-  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Regen: Menge, falls es regnet (Median der Quellen, die Regen erwarten; die Wahrscheinlichkeit daneben sagt, ob es regnet); „leicht“ (unter 5 mm) und „stark“ (ab 15 mm) richten sich nach dieser Menge. ⚡ „Unwettergefahr“: ein Modell erwartet 10 mm oder mehr in einer Stunde; in 6 Monaten Prüfung erkannte das 5 von 6 Starkregen. Sonnenstunden: zwischen 6 und 18 Uhr aus der Bewölkung der Modelle geschätzt, abzüglich der Zeiträume mit wahrscheinlichem Regen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (mindestens eine Stunde mit 0,2 mm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Chuva: quanto chove se chover (mediana das fontes que preveem chuva; a chance ao lado diz se vai chover); o texto diz "fraca" (menos de 5 mm) ou "forte" (15 mm ou mais) por esse volume. ⚡ "risco de temporal": algum modelo prevê 10 mm ou mais numa só hora; na conferência de 6 meses, avisou 5 de 6 aguaceiros. Horas de sol: estimadas entre 6h e 18h pela nebulosidade dos modelos, descontando os períodos em que a chuva é provável. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (alguma hora com 0,2 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
+  <p class="sub" data-de="Tiefst- und Höchstwert: Median aller Quellen. Regen: Menge, falls es regnet (Median der Quellen, die Regen erwarten; die Wahrscheinlichkeit daneben sagt, ob es regnet); „leicht“ (unter 5 L/qm) und „stark“ (ab 15 L/qm) richten sich nach dieser Menge. ⚡ „Unwettergefahr“: ein Modell erwartet 10 L/qm oder mehr in einer Stunde; in 6 Monaten Prüfung erkannte das 5 von 6 Starkregen. Sonnenstunden: zwischen 6 und 18 Uhr aus der Bewölkung der Modelle geschätzt, abzüglich der Zeiträume mit wahrscheinlichem Regen. Die Regenwahrscheinlichkeit stammt aus 82 Ensemble-Szenarien von ECMWF und GFS (mindestens eine Stunde mit 0,2 L/qm oder mehr); das Etikett zeigt, wie einig sich diese Szenarien über Regen oder Trockenheit sind. Die vier Felder zeigen Nacht (0–6 Uhr), Vormittag, Nachmittag und Abend mit ihrer Regenwahrscheinlichkeit; für heute zählen nur die verbleibenden Stunden.">Mínima e máxima: mediana de todas as fontes. Chuva: quanto chove se chover (mediana das fontes que preveem chuva; a chance ao lado diz se vai chover); o texto diz "fraca" (menos de 5 mm) ou "forte" (15 mm ou mais) por esse volume. ⚡ "risco de temporal": algum modelo prevê 10 mm ou mais numa só hora; na conferência de 6 meses, avisou 5 de 6 aguaceiros. Horas de sol: estimadas entre 6h e 18h pela nebulosidade dos modelos, descontando os períodos em que a chuva é provável. A probabilidade de chuva vem de 82 cenários dos ensembles ECMWF e GFS (alguma hora com 0,2 mm ou mais); o selo diz quanto esses cenários concordam sobre chover ou não. Os quatro quadros mostram madrugada (0–6h), manhã, tarde e noite com a chance de chuva de cada período; para hoje contam só as horas que faltam.</p>
   <div class="days" id="days"></div>
 </section>
 
 <details class="fold" id="fold-table">
   <summary><h2 data-de="Vergleich nach Quelle">Comparação por fonte</h2><span class="hint" data-de="Anzeigen">Mostrar</span></summary>
-  <p class="sub" data-de="Höchst- / Tiefstwert in °C und Tagesniederschlag in mm (heute: nur der noch erwartete). Jedes Modell rechnet unabhängig; weicht eines um 3 °C oder mehr vom Median ab, wird die Zelle hervorgehoben. Die Zeile „Konsens“ ist das, was in den 10 Tagen steht: Median der Temperaturen und, beim Regen, die Menge, falls es regnet.">Máxima / mínima em °C e chuva do dia em mm (hoje: só a que ainda falta). Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada. A linha Consenso é o que aparece nos 10 dias: mediana das temperaturas e, na chuva, quanto chove se chover.</p>
+  <p class="sub" data-de="Höchst- / Tiefstwert in °C und Tagesniederschlag in L/qm (heute: nur der noch erwartete). Jedes Modell rechnet unabhängig; weicht eines um 3 °C oder mehr vom Median ab, wird die Zelle hervorgehoben. Die Zeile „Konsens“ ist das, was in den 10 Tagen steht: Median der Temperaturen und, beim Regen, die Menge, falls es regnet.">Máxima / mínima em °C e chuva do dia em mm (hoje: só a que ainda falta). Cada modelo é calculado de forma independente; quando um diverge 3 °C ou mais da mediana, a célula fica destacada. A linha Consenso é o que aparece nos 10 dias: mediana das temperaturas e, na chuva, quanto chove se chover.</p>
   <div class="tablebox"><table id="table"></table></div>
   <div class="legend"><span data-de="weicht 3 °C oder mehr vom Median ab">diverge 3 °C ou mais da mediana</span></div>
 </details>
@@ -324,7 +324,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 90ch; }
   <p class="sub" data-de="Stündliche Temperatur jedes Modells (dünne Linien) und Median (dicke Linie). Darunter der stündliche Niederschlag: Median der Modelle (Linie) und Maximum (Balken).">Temperatura hora a hora de cada modelo (linhas finas) e mediana (linha grossa). Abaixo, chuva por hora: mediana dos modelos (linha) e máximo entre eles (barras).</p>
   <div class="charts">
     <div class="chartbox"><h3 data-de="Temperatur (°C)">Temperatura (°C)</h3><div class="cv"><canvas id="c-temp"></canvas></div></div>
-    <div class="chartbox"><h3 data-de="Niederschlag (mm/h)">Chuva (mm/h)</h3><div class="cv short"><canvas id="c-rain"></canvas></div></div>
+    <div class="chartbox"><h3 data-de="Niederschlag (L/qm pro Stunde)">Chuva (mm/h)</h3><div class="cv short"><canvas id="c-rain"></canvas></div></div>
   </div>
 </section>
 
@@ -1381,9 +1381,9 @@ function periodsOf(date, sources, ensPeriods) {
 function rainAmount(c) {
   if (c.prHi == null) return '–';
   // Under 20% chance a lone wet source must not show as an amount beside "1% de chance": the day reads as dry
-  if (c.chance != null && c.chance < 20) return (c.pr ?? 0) < 0.2 ? '0 mm' : '< 1 mm';
-  if (c.wetMed == null) return c.prHi >= 0.2 ? '< 1 mm' : '0 mm';
-  return `${fmt(c.wetMed, c.wetMed < 10 ? 1 : 0)} mm`;
+  if (c.chance != null && c.chance < 20) return (c.pr ?? 0) < 0.2 ? `0 ${MM}` : `< 1 ${MM}`;
+  if (c.wetMed == null) return c.prHi >= 0.2 ? `< 1 ${MM}` : `0 ${MM}`;
+  return `${fmt(c.wetMed, c.wetMed < 10 ? 1 : 0)} ${MM}`;
 }
 
 // Convective downpour risk: some model puts 10 mm or more in a single hour (today: only the hours ahead).
@@ -1391,6 +1391,8 @@ function rainAmount(c) {
 // with 12 alarms on days without such a downpour (cells are local: a "false" alarm may have hit next door).
 // CAPE and the models' thunder codes did worse (3 and 4 of 6, with more false alarms).
 const CONV_MM = 10;
+// Rain unit: German readers (the Austrian engineer) are used to litres per square metre (same number as mm)
+const MM = T('mm', 'L/qm');
 function convectiveRisk(date, sources, fromKey = localHourKey(new Date()), toKey = `${date}T23:59`) {
   let n = 0, max = 0, at = null;
   for (const s of sources.filter((x) => x.kind === 'model')) {
@@ -1405,7 +1407,7 @@ function convectiveRisk(date, sources, fromKey = localHourKey(new Date()), toKey
   return n ? { n, max, hour: +at.slice(11, 13) } : null;
 }
 const convTitle = (cv) => T(`${cv.n} ${cv.n === 1 ? 'modelo prevê' : 'modelos preveem'} ${CONV_MM} mm ou mais numa só hora (até ${fmt(cv.max)} mm, por volta das ${cv.hour}h): risco de aguaceiro convectivo, com hora e lugar incertos. Nos 6 meses conferidos com a estação de Canela, este sinal avisou 5 de 6 aguaceiros.`,
-  `${cv.n} ${cv.n === 1 ? 'Modell erwartet' : 'Modelle erwarten'} ${CONV_MM} mm oder mehr in einer Stunde (bis ${fmt(cv.max)} mm, gegen ${cv.hour} Uhr): Gefahr eines konvektiven Starkregens, Zeit und Ort unsicher. In 6 Monaten an der Station Canela erkannte dieses Signal 5 von 6 Starkregen.`);
+  `${cv.n} ${cv.n === 1 ? 'Modell erwartet' : 'Modelle erwarten'} ${CONV_MM} L/qm oder mehr in einer Stunde (bis ${fmt(cv.max)} L/qm, gegen ${cv.hour} Uhr): Gefahr eines konvektiven Starkregens, Zeit und Ort unsicher. In 6 Monaten an der Station Canela erkannte dieses Signal 5 von 6 Starkregen.`);
 
 function renderDays(cons, ensAll, sources) {
   const ens = ensAll.perDay || {};
@@ -1434,7 +1436,7 @@ function renderDays(cons, ensAll, sources) {
         <div class="tv" title="${T(`Mín. entre ${fmt(c.minLo)}° e ${fmt(c.minHi)}° · Máx. entre ${fmt(c.maxLo)}° e ${fmt(c.maxHi)}°`, `Min. ${fmt(c.minLo)}° bis ${fmt(c.minHi)}° · Max. ${fmt(c.maxLo)}° bis ${fmt(c.maxHi)}°`)}"><span class="lo">${fmt(c.min)}°</span><span class="sep">/</span><span class="hi">${fmt(c.max)}°</span></div>
         ${c.sun != null ? `<div class="sun" title="${T(`Estimativa pela nebulosidade de ${c.sunN} modelos e pela chance de chuva de cada período${c.rest ? ' · só as horas de luz que faltam hoje' : ''}`, `Geschätzt aus der Bewölkung von ${c.sunN} Modellen und der Regenwahrscheinlichkeit je Zeitraum${c.rest ? ' · nur die heute noch verbleibenden hellen Stunden' : ''}`)}">${fmt(c.sun)} ${T('h de sol', 'Std. Sonne')}</div>` : ''}
       </div>
-      <div class="rain"><span class="mm" title="${c.wetN ? T(`Quanto chove se chover: mediana das ${c.wetN} fontes que preveem 1 mm ou mais (de ${c.prN}); elas vão de ${fmt(c.wetLo, 1)} a ${fmt(c.prHi, 1)} mm`, `Menge, falls es regnet: Median der ${c.wetN} Quellen mit 1 mm oder mehr (von ${c.prN}); sie reichen von ${fmt(c.wetLo, 1)} bis ${fmt(c.prHi, 1)} mm`) : ''}">${rainAmount(c)}</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
+      <div class="rain"><span class="mm" title="${c.wetN ? T(`Quanto chove se chover: mediana das ${c.wetN} fontes que preveem 1 mm ou mais (de ${c.prN}); elas vão de ${fmt(c.wetLo, 1)} a ${fmt(c.prHi, 1)} mm`, `Menge, falls es regnet: Median der ${c.wetN} Quellen mit 1 L/qm oder mehr (von ${c.prN}); sie reichen von ${fmt(c.wetLo, 1)} bis ${fmt(c.prHi, 1)} L/qm`) : ''}">${rainAmount(c)}</span><div class="pbar"><i style="width:${pct}%"></i></div><span style="color:var(--muted);font-size:12px">${rainTxt}</span></div>
       <div class="agree">${c.conv ? `<span class="pill conv" title="${esc(convTitle(c.conv))}">⚡ ${T('risco de temporal', 'Unwettergefahr')}</span>` : ''}${conf}</div>
     </div>`;
   }).join('');
@@ -1456,7 +1458,7 @@ function renderTable(sources, cons, dates) {
     const off = c.max != null && Math.abs(v.max - c.max) >= 3 || (v.min != null && c.min != null && Math.abs(v.min - c.min) >= 3);
     const { pr, whole } = prOf(s, d, v);
     // A source that gives the rain as a range (Clima & Radar) shows its range
-    const prTxt = v.prRange ? `${fmt(v.prRange[0])}–${fmt(v.prRange[1])} mm` : `${fmt(pr, 1)} mm`;
+    const prTxt = v.prRange ? `${fmt(v.prRange[0])}–${fmt(v.prRange[1])} ${MM}` : `${fmt(pr, 1)} ${MM}`;
     const prHtml = pr == null ? '' : whole
       ? `<span class="pr" style="opacity:.55" title="${T('dia inteiro (fonte sem dados por hora)', 'ganzer Tag (Quelle ohne Stundenwerte)')}">${prTxt}*</span>`
       : `<span class="pr">${prTxt}</span>`;
@@ -1503,7 +1505,7 @@ function renderCharts(sources) {
     ] },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
       plugins: { legend: { position: 'bottom', labels: { color: col('--muted'), boxWidth: 12, font: { size: 11 } } },
-        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y, 1)} mm` } } },
+        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y, 1)} ${MM}` } } },
       scales: { x: { grid: { display: false }, ticks: xTicks }, y: { grid, ticks, beginAtZero: true } } },
   }));
 }
